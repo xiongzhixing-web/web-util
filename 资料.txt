@@ -1,0 +1,41 @@
+
+ps aux | grep tomcat 查看进程
+
+sudo kill -9 24289 杀死进程
+
+SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   查看被锁记录
+
+grep -C 5 'NullPointerException' ./catalina.out 
+
+ sed -n '266299,266399p' ./catalina.out
+
+这样你就可以只查看文件的第5行到第10行
+
+
+grep -n 'NullPointerException' ./catalina.out   显示行号以及所在行
+
+grep apple fruitlist.txt | grep -v pineapple   排除
+
+netstat -an | grep 8788   查看端口占用
+
+https://github.com/chenyangsocool/ssm      ssm地址
+
+rcho >> klllf.log   日志重定向
+
+webbench -c 并发数 -t 并发时间 网址
+ 
+webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
+
+
+git tag
+
+git push --tag
+
+
+$ git tag -d ola_v1.0_b14
+$ git push origin --delete tag ola_v1.0_b14
+
+移除满足条件的所有文件：find -name .svn |xargs rm -rf
+
+
+
