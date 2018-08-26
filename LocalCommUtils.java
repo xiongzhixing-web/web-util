@@ -401,6 +401,39 @@ public final class LocalCommUtils {
         }
         return ip;
     }
+	
+	public static <T> T copyObj(T t) {
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(baos);
+            oos.writeObject(t);
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            ois = new ObjectInputStream(bais);
+            return (T) ois.readObject();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(oos != null){
+                try {
+                    oos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(ois != null){
+                try {
+                    ois.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+        return null;
+    }
 
 
 }
