@@ -41,4 +41,36 @@ $ git push origin --delete tag ola_v1.0_b14
 https://blog.csdn.net/cyljbq/article/details/42672501   webservice
 
 
+DELIMITER |
+create trigger tri_after_insert_code_unit_str after insert
+on code_unit_str for each row
+begin  
+  declare sIndex int;
+  declare eIndex int;
+  declare strIds text;
+  declare strId char(32);
+	declare selCount int;
+
+	set strIds = new.str_ids;
+  set sIndex = 1;
+	set eIndex = LOCATE(',',new.str_ids,sIndex);
+
+/*循环开始*/
+flag_while:while eIndex != 0  do
+   set strId = SUBSTRING(strIds,sIndex,eIndex - sIndex);
+	 set selCount = (select count(*) from str s where s.code_unit_id=new.code_unit_id and s.str_id=strId);
+
+	 if selCount = 0 then
+			insert into str(code_unit_id,str_id) values(NEW.code_unit_id,strId);
+	 end if;
+   set sIndex = eIndex + 1;
+	 set eIndex = LOCATE(',',NEW.str_ids,sIndex);
+
+   /*声明结束的时候*/
+   if eIndex=0 then leave flag_while ; end if ;
+ end while flag_while;  /*循环结束*/
+end|
+DELIMITER ;
+
+
 
