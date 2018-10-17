@@ -72,5 +72,7 @@ flag_while:while eIndex != 0  do
 end|
 DELIMITER ;
 
+  Pattern p = Pattern.compile("\\s*//[^/]+$");
+
 
 
