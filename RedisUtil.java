@@ -1,331 +1,343 @@
-package com.soecode.lyf.util;
+package com.wisdom.util.redis;
 
-import com.alibaba.fastjson.JSON;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+import org.apache.log4j.Logger;
+import redis.clients.jedis.BinaryClient.LIST_POSITION;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.SortingParams;
 import redis.clients.util.SafeEncoder;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 
-
+/**
+ * @author Mr.hu
+ * @version crateTimeï¼š2013-10-30 ä¸‹åˆ5:41:30
+ * Class Explain:RedisUtil
+ */
 public class RedisUtil {
-    private static final Logger log = LoggerFactory.getLogger(RedisUtil.class);
 
-    //Ä¬ÈÏ»º´æÊ±¼ä
-    private static final int EXPIRE = 60000;
-
-    private static Properties properties;
-
-    private static volatile RedisUtil instance;
-
-    private static volatile JedisPool jedisPool;
-
-    //private static ReentrantLock lock = new ReentrantLock();
+    private Logger log = Logger.getLogger(this.getClass());
+    /**
+     * ç¼“å­˜ç”Ÿå­˜æ—¶é—´
+     */
+    private final int expire = 60000;
+    /**
+     * æ“ä½œKeyçš„æ–¹æ³•
+     */
+    public Keys KEYS;
+    /**
+     * å¯¹å­˜å‚¨ç»“æ„ä¸ºStringç±»å‹çš„æ“ä½œ
+     */
+    public Strings STRINGS;
+    /**
+     * å¯¹å­˜å‚¨ç»“æ„ä¸ºListç±»å‹çš„æ“ä½œ
+     */
+    public Lists LISTS;
+    /**
+     * å¯¹å­˜å‚¨ç»“æ„ä¸ºSetç±»å‹çš„æ“ä½œ
+     */
+    public Sets SETS;
+    /**
+     * å¯¹å­˜å‚¨ç»“æ„ä¸ºHashMapç±»å‹çš„æ“ä½œ
+     */
+    public Hash HASH;
+    /**
+     * å¯¹å­˜å‚¨ç»“æ„ä¸ºSet(æ’åºçš„)ç±»å‹çš„æ“ä½œ
+     */
+    public SortSet SORTSET;
+    private static JedisPool jedisPool = null;
 
     private RedisUtil() {
+
     }
 
-    public static RedisUtil getInstance() {
-        if (instance == null) {
-            synchronized (RedisUtil.class) {
-                if (instance == null) {
-                    instance = new RedisUtil();
-                }
-            }
-        }
-        return instance;
-    }
-
-
-    /**
-     * ³õÊ¼»¯JedisPool
-     */
-    private void initJedisPool() {
-        properties = new Properties();
-        try {
-            properties.load(this.getClass().getResourceAsStream("/redis.properties"));
-        } catch (IOException e) {
-            log.error("redisÅäÖÃÎÄ¼ş¼ÓÔØÒì³£", e);
-        }
+    static {
+        ResourceBundle REDIS_CONFIG = ResourceBundle.getBundle("redis");
+        int maxIdle = NumberUtils.toInt(REDIS_CONFIG.getString("redis.pool.maxIdle"), 8);
+        int maxActive = NumberUtils.toInt(REDIS_CONFIG.getString("redis.pool.maxActive"), 8);
+        boolean testOnBorrow = Boolean.parseBoolean(REDIS_CONFIG.getString("redis.pool.testOnBorrow"));
+        boolean testOnReturn = Boolean.parseBoolean(REDIS_CONFIG.getString("redis.pool.testOnReturn"));
+        String IP = REDIS_CONFIG.getString("redis.ip");
+        int PORT = NumberUtils.toInt(REDIS_CONFIG.getString("redis.port"));
+        String password = REDIS_CONFIG.getString("redis.password");
 
         JedisPoolConfig config = new JedisPoolConfig();
-        config.setMaxIdle(Integer.valueOf(properties.getProperty("redis.pool.maxIdle")));
-        config.setTestOnBorrow(Boolean.getBoolean(properties.getProperty("redis.pool.testOnBorrow")));
-        config.setTestOnReturn(Boolean.getBoolean(properties.getProperty("redis.pool.testOnReturn")));
-        jedisPool = new JedisPool(config, properties.getProperty("redis.host"), Integer.valueOf(properties.getProperty("redis.port")));
+        config.setMaxTotal(maxActive);
+        config.setMaxIdle(maxIdle);
+        //config.setMaxWait(JRedisPoolConfig.MAX_WAIT);
+        config.setTestOnBorrow(testOnBorrow);
+        config.setTestOnReturn(testOnReturn);
+        //rediså¦‚æœè®¾ç½®äº†å¯†ç ï¼š
+        jedisPool = new JedisPool(config, IP, PORT, 10000, password);
+    }
+
+    public JedisPool getPool() {
+        return jedisPool;
     }
 
     /**
-     * Í¨ÓÃ·½·¨£º´ÓJedisPoolÖĞ»ñÈ¡Jedis
+     * ä»jedisè¿æ¥æ± ä¸­è·å–è·å–jediså¯¹è±¡
      *
      * @return
      */
-    private Jedis getJedis() {
-        if (jedisPool == null) {
-            synchronized (RedisUtil.class) {
-                if (jedisPool == null) {
-                    initJedisPool();
-                }
-            }
-            log.info("JedisPool init success£¡");
-        }
+    public Jedis getJedis() {
         return jedisPool.getResource();
     }
 
+
+    private static final RedisUtil RedisUtil = new RedisUtil();
+
+
     /**
-     * Í¨ÓÃ·½·¨£ºÊÍ·ÅJedis
+     * è·å–RedisUtilå®ä¾‹
+     *
+     * @return
+     */
+    public static RedisUtil getInstance() {
+        return RedisUtil;
+    }
+
+    /**
+     * å›æ”¶jedis
      *
      * @param jedis
      */
-    private void closeJedis(Jedis jedis) {
-        jedis.close();
+    public void returnJedis(Jedis jedis) {
+        jedisPool.returnResource(jedis);
     }
 
-//===========================================================
+
     /**
-     * ¶ÔKeys,ÒÔ¼°´æ´¢½á¹¹ÎªString¡¢List¡¢Set¡¢HashMapÀàĞÍµÄ²Ù×÷
+     * è®¾ç½®è¿‡æœŸæ—¶é—´
+     *
+     * @param key
+     * @param seconds
+     * @author ruan 2013-4-11
      */
-    private final Keys keys = new Keys();
-    private final Strings strings = new Strings();
-    private final Lists lists = new Lists();
-    private final Sets sets = new Sets();
-    private final Hash hash = new Hash();
-    private final SortSet sortset = new SortSet();
-
-    public Keys keys() {
-        return keys;
+    public void expire(String key, int seconds) {
+        if (seconds <= 0) {
+            return;
+        }
+        Jedis jedis = getJedis();
+        jedis.expire(key, seconds);
+        returnJedis(jedis);
     }
 
-    public Strings strings() {
-        return strings;
+    /**
+     * è®¾ç½®é»˜è®¤è¿‡æœŸæ—¶é—´
+     *
+     * @param key
+     * @author ruan 2013-4-11
+     */
+    public void expire(String key) {
+        expire(key, expire);
     }
 
-    public Lists lists() {
-        return lists;
-    }
-
-    public Sets sets() {
-        return sets;
-    }
-
-    public Hash hash() {
-        return hash;
-    }
-
-    public SortSet sortSet() {
-        return sortset;
-    }
-    //===========================================================
 
     //*******************************************Keys*******************************************//
     public class Keys {
 
         /**
-         * ÉèÖÃ¹ıÆÚÊ±¼ä
-         *
-         * @param key
-         * @param seconds
-         * @return ·µ»ØÓ°ÏìµÄ¼ÇÂ¼Êı
+         * æ¸…ç©ºæ‰€æœ‰key
          */
-        public long expire(String key, int seconds) {
-            if (seconds <= 0) {
-                return -1L;
-            }
+        public String flushAll() {
             Jedis jedis = getJedis();
-            long result = jedis.expire(key, seconds);
-            closeJedis(jedis);
-            return result;
+            String stata = jedis.flushAll();
+            returnJedis(jedis);
+            return stata;
         }
 
         /**
-         * ÉèÖÃ¹ıÆÚÊ±¼ä£¬Ä¬ÈÏÖµÎª60000seconds
+         * æ›´æ”¹key
          *
-         * @param key
+         * @param oldkey
+         * @param newkey
+         * @return çŠ¶æ€ç 
          */
-        public long expire(String key) {
-            return expire(key, EXPIRE);
+        public String rename(String oldkey, String newkey) {
+            return rename(SafeEncoder.encode(oldkey), SafeEncoder.encode(newkey));
         }
 
         /**
-         * ÉèÖÃkeyµÄ¹ıÆÚÊ±¼ä,ËüÊÇ¾àÀúÔª£¨¼´¸ñÁÖÍşÖÎ±ê×¼Ê±¼ä 1970 Äê 1 ÔÂ 1 ÈÕµÄ 00:00:00£¬¸ñÀï¸ßÀûÀú£©µÄÆ«ÒÆÁ¿¡£
+         * æ›´æ”¹key,ä»…å½“æ–°keyä¸å­˜åœ¨æ—¶æ‰æ‰§è¡Œ
+         *
+         * @param oldkey
+         * @param newkey
+         * @return çŠ¶æ€ç 
+         */
+        public long renamenx(String oldkey, String newkey) {
+            Jedis jedis = getJedis();
+            long status = jedis.renamenx(oldkey, newkey);
+            returnJedis(jedis);
+            return status;
+        }
+
+        /**
+         * æ›´æ”¹key
+         *
+         * @param oldkey
+         * @param newkey
+         * @return çŠ¶æ€ç 
+         */
+        public String rename(byte[] oldkey, byte[] newkey) {
+            Jedis jedis = getJedis();
+            String status = jedis.rename(oldkey, newkey);
+            returnJedis(jedis);
+            return status;
+        }
+
+        /**
+         * è®¾ç½®keyçš„è¿‡æœŸæ—¶é—´ï¼Œä»¥ç§’ä¸ºå•ä½
          *
          * @param key
-         * @param timestamp Ãë
-         * @return Ó°ÏìµÄ¼ÇÂ¼Êı
+         * @param
+         * @return å½±å“çš„è®°å½•æ•°
          */
-        public long expireAt(String key, long timestamp) {
+        public long expired(String key, int seconds) {
             Jedis jedis = getJedis();
-            long count = jedis.expireAt(key, timestamp);
-            closeJedis(jedis);
+            long count = jedis.expire(key, seconds);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * ²éÑ¯keyµÄ¹ıÆÚÊ±¼ä
+         * è®¾ç½®keyçš„è¿‡æœŸæ—¶é—´,å®ƒæ˜¯è·å†å…ƒï¼ˆå³æ ¼æ—å¨æ²»æ ‡å‡†æ—¶é—´ 1970 å¹´ 1 æœˆ 1 æ—¥çš„ 00:00:00ï¼Œæ ¼é‡Œé«˜åˆ©å†ï¼‰çš„åç§»é‡ã€‚
          *
          * @param key
-         * @return ÒÔÃëÎªµ¥Î»µÄÊ±¼ä±íÊ¾
+         * @param
+         * @return å½±å“çš„è®°å½•æ•°
+         */
+        public long expireAt(String key, long timestamp) {
+            Jedis jedis = getJedis();
+            long count = jedis.expireAt(key, timestamp);
+            returnJedis(jedis);
+            return count;
+        }
+
+        /**
+         * æŸ¥è¯¢keyçš„è¿‡æœŸæ—¶é—´
+         *
+         * @param key
+         * @return ä»¥ç§’ä¸ºå•ä½çš„æ—¶é—´è¡¨ç¤º
          */
         public long ttl(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long len = sjedis.ttl(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return len;
         }
 
         /**
-         * È¡Ïû¶Ôkey¹ıÆÚÊ±¼äµÄÉèÖÃ
+         * å–æ¶ˆå¯¹keyè¿‡æœŸæ—¶é—´çš„è®¾ç½®
          *
          * @param key
-         * @return Ó°ÏìµÄ¼ÇÂ¼Êı
+         * @return å½±å“çš„è®°å½•æ•°
          */
         public long persist(String key) {
             Jedis jedis = getJedis();
             long count = jedis.persist(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * Çå¿ÕËùÓĞkey
+         * åˆ é™¤keyså¯¹åº”çš„è®°å½•,å¯ä»¥æ˜¯å¤šä¸ªkey
          *
-         * @return
+         * @param keys
+         * @return åˆ é™¤çš„è®°å½•æ•°
          */
-        public String flushAll() {
+        public long del(String... keys) {
             Jedis jedis = getJedis();
-            String stata = jedis.flushAll();
-            closeJedis(jedis);
-            return stata;
+            long count = jedis.del(keys);
+            returnJedis(jedis);
+            return count;
         }
 
         /**
-         * ÅĞ¶ÏkeyÊÇ·ñ´æÔÚ
+         * åˆ é™¤keyså¯¹åº”çš„è®°å½•,å¯ä»¥æ˜¯å¤šä¸ªkey
+         *
+         * @param keys
+         * @return åˆ é™¤çš„è®°å½•æ•°
+         */
+        public long del(byte[]... keys) {
+            Jedis jedis = getJedis();
+            long count = jedis.del(keys);
+            returnJedis(jedis);
+            return count;
+        }
+
+        /**
+         * åˆ¤æ–­keyæ˜¯å¦å­˜åœ¨
          *
          * @param key
          * @return boolean
          */
         public boolean exists(String key) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             boolean exis = sjedis.exists(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return exis;
         }
 
         /**
-         * ¸ü¸Äkey
-         */
-        public String rename(String oldKey, String newKey) {
-            return rename(SafeEncoder.encode(oldKey), SafeEncoder.encode(newKey));
-        }
-
-        /**
-         * ¸ü¸Äkey,½öµ±ĞÂkey²»´æÔÚÊ±²ÅÖ´ĞĞ
-         *
-         * @param oldKey
-         * @param newKey
-         * @return ×´Ì¬Âë
-         */
-        public long renamenx(String oldKey, String newKey) {
-            Jedis jedis = getJedis();
-            long status = jedis.renamenx(oldKey, newKey);
-            closeJedis(jedis);
-            return status;
-        }
-
-        /**
-         * ¸ü¸Äkey
-         */
-        public String rename(byte[] oldKey, byte[] newKey) {
-            Jedis jedis = getJedis();
-            String status = jedis.rename(oldKey, newKey);
-            closeJedis(jedis);
-            return status;
-        }
-
-
-        /**
-         * É¾³ıkeys¶ÔÓ¦µÄ¼ÇÂ¼,¿ÉÒÔÊÇ¶à¸ökey
-         *
-         * @param keys
-         * @return É¾³ıµÄ¼ÇÂ¼Êı
-         */
-        public long del(String... keys) {
-            Jedis jedis = getJedis();
-            long count = jedis.del(keys);
-            closeJedis(jedis);
-            return count;
-        }
-
-        /**
-         * É¾³ıkeys¶ÔÓ¦µÄ¼ÇÂ¼,¿ÉÒÔÊÇ¶à¸ökey
-         *
-         * @param keys
-         * @return É¾³ıµÄ¼ÇÂ¼Êı
-         */
-        public long del(byte[]... keys) {
-            Jedis jedis = getJedis();
-            long count = jedis.del(keys);
-            closeJedis(jedis);
-            return count;
-        }
-
-
-        /**
-         * ¶ÔList,Set,SortSet½øĞĞÅÅĞò,Èç¹û¼¯ºÏÊı¾İ½Ï´óÓ¦±ÜÃâÊ¹ÓÃÕâ¸ö·½·¨
+         * å¯¹List,Set,SortSetè¿›è¡Œæ’åº,å¦‚æœé›†åˆæ•°æ®è¾ƒå¤§åº”é¿å…ä½¿ç”¨è¿™ä¸ªæ–¹æ³•
          *
          * @param key
-         * @return List<String> ¼¯ºÏµÄÈ«²¿¼ÇÂ¼
+         * @return List<String> é›†åˆçš„å…¨éƒ¨è®°å½•
          **/
         public List<String> sort(String key) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<String> list = sjedis.sort(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * ¶ÔList,Set,SortSet½øĞĞÅÅĞò»òlimit
+         * å¯¹List,Set,SortSetè¿›è¡Œæ’åºæˆ–limit
          *
          * @param key
-         * @param parame ¶¨ÒåÅÅĞòÀàĞÍ»òlimitµÄÆğÖ¹Î»ÖÃ.
-         * @return List<String> È«²¿»ò²¿·Ö¼ÇÂ¼
+         * @param parame å®šä¹‰æ’åºç±»å‹æˆ–limitçš„èµ·æ­¢ä½ç½®.
+         * @return List<String> å…¨éƒ¨æˆ–éƒ¨åˆ†è®°å½•
          **/
         public List<String> sort(String key, SortingParams parame) {
-            Jedis jedis = getJedis();
-            List<String> list = jedis.sort(key, parame);
-            closeJedis(jedis);
+            //ShardedJedis sjedis = getShardedJedis();
+            Jedis sjedis = getJedis();
+            List<String> list = sjedis.sort(key, parame);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * ·µ»ØÖ¸¶¨key´æ´¢µÄÀàĞÍ
+         * è¿”å›æŒ‡å®škeyå­˜å‚¨çš„ç±»å‹
          *
          * @param key
          * @return String string|list|set|zset|hash
          **/
         public String type(String key) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             String type = sjedis.type(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return type;
         }
 
         /**
-         * ²éÕÒËùÓĞÆ¥Åä¸ø¶¨µÄÄ£Ê½µÄ¼ü
+         * æŸ¥æ‰¾æ‰€æœ‰åŒ¹é…ç»™å®šçš„æ¨¡å¼çš„é”®
          *
-         * @param pattern µÄ±í´ïÊ½,*±íÊ¾¶à¸ö£¬£¿±íÊ¾Ò»¸ö
+         * @param,*è¡¨ç¤ºå¤šä¸ªï¼Œï¼Ÿè¡¨ç¤ºä¸€ä¸ª
          */
         public Set<String> keys(String pattern) {
             Jedis jedis = getJedis();
             Set<String> set = jedis.keys(pattern);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return set;
         }
     }
@@ -334,120 +346,120 @@ public class RedisUtil {
     public class Sets {
 
         /**
-         * ÏòSetÌí¼ÓÒ»Ìõ¼ÇÂ¼£¬Èç¹ûmemberÒÑ´æÔÚ·µ»Ø0,·ñÔò·µ»Ø1
+         * å‘Setæ·»åŠ ä¸€æ¡è®°å½•ï¼Œå¦‚æœmemberå·²å­˜åœ¨è¿”å›0,å¦åˆ™è¿”å›1
          *
          * @param key
          * @param member
-         * @return ²Ù×÷Âë, 0»ò1
+         * @return æ“ä½œç , 0æˆ–1
          */
         public long sadd(String key, String member) {
             Jedis jedis = getJedis();
             long s = jedis.sadd(key, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         public long sadd(byte[] key, byte[] member) {
             Jedis jedis = getJedis();
             long s = jedis.sadd(key, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * »ñÈ¡¸ø¶¨keyÖĞÔªËØ¸öÊı
+         * è·å–ç»™å®škeyä¸­å…ƒç´ ä¸ªæ•°
          *
          * @param key
-         * @return ÔªËØ¸öÊı
+         * @return å…ƒç´ ä¸ªæ•°
          */
         public long scard(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long len = sjedis.scard(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return len;
         }
 
         /**
-         * ·µ»Ø´ÓµÚÒ»×éºÍËùÓĞµÄ¸ø¶¨¼¯ºÏÖ®¼äµÄ²îÒìµÄ³ÉÔ±
+         * è¿”å›ä»ç¬¬ä¸€ç»„å’Œæ‰€æœ‰çš„ç»™å®šé›†åˆä¹‹é—´çš„å·®å¼‚çš„æˆå‘˜
          *
          * @param keys
-         * @return ²îÒìµÄ³ÉÔ±¼¯ºÏ
+         * @return å·®å¼‚çš„æˆå‘˜é›†åˆ
          */
         public Set<String> sdiff(String... keys) {
             Jedis jedis = getJedis();
             Set<String> set = jedis.sdiff(keys);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return set;
         }
 
         /**
-         * Õâ¸öÃüÁîµÈÓÚsdiff,µ«·µ»ØµÄ²»ÊÇ½á¹û¼¯,¶øÊÇ½«½á¹û¼¯´æ´¢ÔÚĞÂµÄ¼¯ºÏÖĞ£¬Èç¹ûÄ¿±êÒÑ´æÔÚ£¬Ôò¸²¸Ç¡£
+         * è¿™ä¸ªå‘½ä»¤ç­‰äºsdiff,ä½†è¿”å›çš„ä¸æ˜¯ç»“æœé›†,è€Œæ˜¯å°†ç»“æœé›†å­˜å‚¨åœ¨æ–°çš„é›†åˆä¸­ï¼Œå¦‚æœç›®æ ‡å·²å­˜åœ¨ï¼Œåˆ™è¦†ç›–ã€‚
          *
-         * @param newKey ĞÂ½á¹û¼¯µÄkey
-         * @param keys   ±È½ÏµÄ¼¯ºÏ
-         * @return ĞÂ¼¯ºÏÖĞµÄ¼ÇÂ¼Êı
+         * @param newkey æ–°ç»“æœé›†çš„key
+         * @param keys   æ¯”è¾ƒçš„é›†åˆ
+         * @return æ–°é›†åˆä¸­çš„è®°å½•æ•°
          **/
-        public long sdiffstore(String newKey, String... keys) {
+        public long sdiffstore(String newkey, String... keys) {
             Jedis jedis = getJedis();
-            long s = jedis.sdiffstore(newKey, keys);
-            closeJedis(jedis);
+            long s = jedis.sdiffstore(newkey, keys);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ·µ»Ø¸ø¶¨¼¯ºÏ½»¼¯µÄ³ÉÔ±,Èç¹ûÆäÖĞÒ»¸ö¼¯ºÏÎª²»´æÔÚ»òÎª¿Õ£¬Ôò·µ»Ø¿ÕSet
+         * è¿”å›ç»™å®šé›†åˆäº¤é›†çš„æˆå‘˜,å¦‚æœå…¶ä¸­ä¸€ä¸ªé›†åˆä¸ºä¸å­˜åœ¨æˆ–ä¸ºç©ºï¼Œåˆ™è¿”å›ç©ºSet
          *
          * @param keys
-         * @return ½»¼¯³ÉÔ±µÄ¼¯ºÏ
+         * @return äº¤é›†æˆå‘˜çš„é›†åˆ
          **/
         public Set<String> sinter(String... keys) {
             Jedis jedis = getJedis();
             Set<String> set = jedis.sinter(keys);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return set;
         }
 
         /**
-         * Õâ¸öÃüÁîµÈÓÚsinter,µ«·µ»ØµÄ²»ÊÇ½á¹û¼¯,¶øÊÇ½«½á¹û¼¯´æ´¢ÔÚĞÂµÄ¼¯ºÏÖĞ£¬Èç¹ûÄ¿±êÒÑ´æÔÚ£¬Ôò¸²¸Ç¡£
+         * è¿™ä¸ªå‘½ä»¤ç­‰äºsinter,ä½†è¿”å›çš„ä¸æ˜¯ç»“æœé›†,è€Œæ˜¯å°†ç»“æœé›†å­˜å‚¨åœ¨æ–°çš„é›†åˆä¸­ï¼Œå¦‚æœç›®æ ‡å·²å­˜åœ¨ï¼Œåˆ™è¦†ç›–ã€‚
          *
-         * @param newKey ĞÂ½á¹û¼¯µÄkey
-         * @param keys   ±È½ÏµÄ¼¯ºÏ
-         * @return ĞÂ¼¯ºÏÖĞµÄ¼ÇÂ¼Êı
+         * @param newkey æ–°ç»“æœé›†çš„key
+         * @param keys   æ¯”è¾ƒçš„é›†åˆ
+         * @return æ–°é›†åˆä¸­çš„è®°å½•æ•°
          **/
-        public long sinterstore(String newKey, String... keys) {
+        public long sinterstore(String newkey, String... keys) {
             Jedis jedis = getJedis();
-            long s = jedis.sinterstore(newKey, keys);
-            closeJedis(jedis);
+            long s = jedis.sinterstore(newkey, keys);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * È·¶¨Ò»¸ö¸ø¶¨µÄÖµÊÇ·ñ´æÔÚ
+         * ç¡®å®šä¸€ä¸ªç»™å®šçš„å€¼æ˜¯å¦å­˜åœ¨
          *
          * @param key
-         * @param member ÒªÅĞ¶ÏµÄÖµ
-         * @return ´æÔÚ·µ»Ø1£¬²»´æÔÚ·µ»Ø0
+         * @param member è¦åˆ¤æ–­çš„å€¼
+         * @return å­˜åœ¨è¿”å›1ï¼Œä¸å­˜åœ¨è¿”å›0
          **/
         public boolean sismember(String key, String member) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             boolean s = sjedis.sismember(key, member);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return s;
         }
 
         /**
-         * ·µ»Ø¼¯ºÏÖĞµÄËùÓĞ³ÉÔ±
+         * è¿”å›é›†åˆä¸­çš„æ‰€æœ‰æˆå‘˜
          *
          * @param key
-         * @return ³ÉÔ±¼¯ºÏ
+         * @return æˆå‘˜é›†åˆ
          */
         public Set<String> smembers(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<String> set = sjedis.smembers(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
@@ -455,77 +467,77 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<byte[]> set = sjedis.smembers(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
         /**
-         * ½«³ÉÔ±´ÓÔ´¼¯ºÏÒÆ³ö·ÅÈëÄ¿±ê¼¯ºÏ <br/>
-         * Èç¹ûÔ´¼¯ºÏ²»´æÔÚ»ò²»°ü¹şÖ¸¶¨³ÉÔ±£¬²»½øĞĞÈÎºÎ²Ù×÷£¬·µ»Ø0<br/>
-         * ·ñÔò¸Ã³ÉÔ±´ÓÔ´¼¯ºÏÉÏÉ¾³ı£¬²¢Ìí¼Óµ½Ä¿±ê¼¯ºÏ£¬Èç¹ûÄ¿±ê¼¯ºÏÖĞ³ÉÔ±ÒÑ´æÔÚ£¬ÔòÖ»ÔÚÔ´¼¯ºÏ½øĞĞÉ¾³ı
+         * å°†æˆå‘˜ä»æºé›†åˆç§»å‡ºæ”¾å…¥ç›®æ ‡é›†åˆ <br/>
+         * å¦‚æœæºé›†åˆä¸å­˜åœ¨æˆ–ä¸åŒ…å“ˆæŒ‡å®šæˆå‘˜ï¼Œä¸è¿›è¡Œä»»ä½•æ“ä½œï¼Œè¿”å›0<br/>
+         * å¦åˆ™è¯¥æˆå‘˜ä»æºé›†åˆä¸Šåˆ é™¤ï¼Œå¹¶æ·»åŠ åˆ°ç›®æ ‡é›†åˆï¼Œå¦‚æœç›®æ ‡é›†åˆä¸­æˆå‘˜å·²å­˜åœ¨ï¼Œåˆ™åªåœ¨æºé›†åˆè¿›è¡Œåˆ é™¤
          *
-         * @param srckey Ô´¼¯ºÏ
-         * @param dstkey Ä¿±ê¼¯ºÏ
-         * @param member Ô´¼¯ºÏÖĞµÄ³ÉÔ±
-         * @return ×´Ì¬Âë£¬1³É¹¦£¬0Ê§°Ü
+         * @param srckey æºé›†åˆ
+         * @param dstkey ç›®æ ‡é›†åˆ
+         * @param member æºé›†åˆä¸­çš„æˆå‘˜
+         * @return çŠ¶æ€ç ï¼Œ1æˆåŠŸï¼Œ0å¤±è´¥
          */
         public long smove(String srckey, String dstkey, String member) {
             Jedis jedis = getJedis();
             long s = jedis.smove(srckey, dstkey, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ´Ó¼¯ºÏÖĞÉ¾³ı³ÉÔ±
+         * ä»é›†åˆä¸­åˆ é™¤æˆå‘˜
          *
          * @param key
-         * @return ±»É¾³ıµÄ³ÉÔ±
+         * @return è¢«åˆ é™¤çš„æˆå‘˜
          */
         public String spop(String key) {
             Jedis jedis = getJedis();
             String s = jedis.spop(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ´Ó¼¯ºÏÖĞÉ¾³ıÖ¸¶¨³ÉÔ±
+         * ä»é›†åˆä¸­åˆ é™¤æŒ‡å®šæˆå‘˜
          *
          * @param key
-         * @param member ÒªÉ¾³ıµÄ³ÉÔ±
-         * @return ×´Ì¬Âë£¬³É¹¦·µ»Ø1£¬³ÉÔ±²»´æÔÚ·µ»Ø0
+         * @param member è¦åˆ é™¤çš„æˆå‘˜
+         * @return çŠ¶æ€ç ï¼ŒæˆåŠŸè¿”å›1ï¼Œæˆå‘˜ä¸å­˜åœ¨è¿”å›0
          */
         public long srem(String key, String member) {
             Jedis jedis = getJedis();
             long s = jedis.srem(key, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ºÏ²¢¶à¸ö¼¯ºÏ²¢·µ»ØºÏ²¢ºóµÄ½á¹û£¬ºÏ²¢ºóµÄ½á¹û¼¯ºÏ²¢²»±£´æ<br/>
+         * åˆå¹¶å¤šä¸ªé›†åˆå¹¶è¿”å›åˆå¹¶åçš„ç»“æœï¼Œåˆå¹¶åçš„ç»“æœé›†åˆå¹¶ä¸ä¿å­˜<br/>
          *
-         * @param keys
-         * @return ºÏ²¢ºóµÄ½á¹û¼¯ºÏ
+         * @return åˆå¹¶åçš„ç»“æœé›†åˆ
+         * @see
          */
         public Set<String> sunion(String... keys) {
             Jedis jedis = getJedis();
             Set<String> set = jedis.sunion(keys);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return set;
         }
 
         /**
-         * ºÏ²¢¶à¸ö¼¯ºÏ²¢½«ºÏ²¢ºóµÄ½á¹û¼¯±£´æÔÚÖ¸¶¨µÄĞÂ¼¯ºÏÖĞ£¬Èç¹ûĞÂ¼¯ºÏÒÑ¾­´æÔÚÔò¸²¸Ç
+         * åˆå¹¶å¤šä¸ªé›†åˆå¹¶å°†åˆå¹¶åçš„ç»“æœé›†ä¿å­˜åœ¨æŒ‡å®šçš„æ–°é›†åˆä¸­ï¼Œå¦‚æœæ–°é›†åˆå·²ç»å­˜åœ¨åˆ™è¦†ç›–
          *
-         * @param newKey ĞÂ¼¯ºÏµÄkey
-         * @param keys   ÒªºÏ²¢µÄ¼¯ºÏ
+         * @param newkey æ–°é›†åˆçš„key
+         * @param keys   è¦åˆå¹¶çš„é›†åˆ
          **/
-        public long sunionstore(String newKey, String... keys) {
+        public long sunionstore(String newkey, String... keys) {
             Jedis jedis = getJedis();
-            long s = jedis.sunionstore(newKey, keys);
-            closeJedis(jedis);
+            long s = jedis.sunionstore(newkey, keys);
+            returnJedis(jedis);
             return s;
         }
     }
@@ -534,49 +546,58 @@ public class RedisUtil {
     public class SortSet {
 
         /**
-         * Ïò¼¯ºÏÖĞÔö¼ÓÒ»Ìõ¼ÇÂ¼,Èç¹ûÕâ¸öÖµÒÑ´æÔÚ£¬Õâ¸öÖµ¶ÔÓ¦µÄÈ¨ÖØ½«±»ÖÃÎªĞÂµÄÈ¨ÖØ
+         * å‘é›†åˆä¸­å¢åŠ ä¸€æ¡è®°å½•,å¦‚æœè¿™ä¸ªå€¼å·²å­˜åœ¨ï¼Œè¿™ä¸ªå€¼å¯¹åº”çš„æƒé‡å°†è¢«ç½®ä¸ºæ–°çš„æƒé‡
          *
          * @param key
-         * @param score  È¨ÖØ
-         * @param member Òª¼ÓÈëµÄÖµ£¬
-         * @return ×´Ì¬Âë 1³É¹¦£¬0ÒÑ´æÔÚmemberµÄÖµ
+         * @param score  æƒé‡
+         * @param member è¦åŠ å…¥çš„å€¼ï¼Œ
+         * @return çŠ¶æ€ç  1æˆåŠŸï¼Œ0å·²å­˜åœ¨memberçš„å€¼
          */
         public long zadd(String key, double score, String member) {
             Jedis jedis = getJedis();
             long s = jedis.zadd(key, score, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
+            return s;
+        }
+
+        public long zadd(String key, Map<String, Double> scoreMembers) {
+            Jedis jedis = getJedis();
+            long s = jedis.zadd(key, scoreMembers);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * »ñÈ¡¼¯ºÏÖĞÔªËØµÄÊıÁ¿
+         * è·å–é›†åˆä¸­å…ƒç´ çš„æ•°é‡
          *
          * @param key
-         * @return Èç¹û·µ»Ø0Ôò¼¯ºÏ²»´æÔÚ
+         * @return å¦‚æœè¿”å›0åˆ™é›†åˆä¸å­˜åœ¨
          */
         public long zcard(String key) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long len = sjedis.zcard(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return len;
         }
 
         /**
-         * »ñÈ¡Ö¸¶¨È¨ÖØÇø¼äÄÚ¼¯ºÏµÄÊıÁ¿
+         * è·å–æŒ‡å®šæƒé‡åŒºé—´å†…é›†åˆçš„æ•°é‡
          *
          * @param key
-         * @param min ×îĞ¡ÅÅĞòÎ»ÖÃ
-         * @param max ×î´óÅÅĞòÎ»ÖÃ
+         * @param min æœ€å°æ’åºä½ç½®
+         * @param max æœ€å¤§æ’åºä½ç½®
          */
         public long zcount(String key, double min, double max) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long len = sjedis.zcount(key, min, max);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return len;
         }
 
         /**
-         * »ñµÃsetµÄ³¤¶È
+         * è·å¾—setçš„é•¿åº¦
          *
          * @param key
          * @return
@@ -589,98 +610,100 @@ public class RedisUtil {
         }
 
         /**
-         * È¨ÖØÔö¼Ó¸ø¶¨Öµ£¬Èç¹û¸ø¶¨µÄmemberÒÑ´æÔÚ
+         * æƒé‡å¢åŠ ç»™å®šå€¼ï¼Œå¦‚æœç»™å®šçš„memberå·²å­˜åœ¨
          *
          * @param key
-         * @param score  ÒªÔöµÄÈ¨ÖØ
-         * @param member Òª²åÈëµÄÖµ
-         * @return ÔöºóµÄÈ¨ÖØ
+         * @param score  è¦å¢çš„æƒé‡
+         * @param member è¦æ’å…¥çš„å€¼
+         * @return å¢åçš„æƒé‡
          */
         public double zincrby(String key, double score, String member) {
             Jedis jedis = getJedis();
             double s = jedis.zincrby(key, score, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ·µ»ØÖ¸¶¨Î»ÖÃµÄ¼¯ºÏÔªËØ,0ÎªµÚÒ»¸öÔªËØ£¬-1Îª×îºóÒ»¸öÔªËØ
+         * è¿”å›æŒ‡å®šä½ç½®çš„é›†åˆå…ƒç´ ,0ä¸ºç¬¬ä¸€ä¸ªå…ƒç´ ï¼Œ-1ä¸ºæœ€åä¸€ä¸ªå…ƒç´ 
          *
          * @param key
-         * @param start ¿ªÊ¼Î»ÖÃ(°üº¬)
-         * @param end   ½áÊøÎ»ÖÃ(°üº¬)
+         * @param start å¼€å§‹ä½ç½®(åŒ…å«)
+         * @param end   ç»“æŸä½ç½®(åŒ…å«)
          * @return Set<String>
          */
         public Set<String> zrange(String key, int start, int end) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<String> set = sjedis.zrange(key, start, end);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
         /**
-         * ·µ»ØÖ¸¶¨È¨ÖØÇø¼äµÄÔªËØ¼¯ºÏ
+         * è¿”å›æŒ‡å®šæƒé‡åŒºé—´çš„å…ƒç´ é›†åˆ
          *
          * @param key
-         * @param min ÉÏÏŞÈ¨ÖØ
-         * @param max ÏÂÏŞÈ¨ÖØ
+         * @param min ä¸Šé™æƒé‡
+         * @param max ä¸‹é™æƒé‡
          * @return Set<String>
          */
         public Set<String> zrangeByScore(String key, double min, double max) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<String> set = sjedis.zrangeByScore(key, min, max);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
         /**
-         * »ñÈ¡Ö¸¶¨ÖµÔÚ¼¯ºÏÖĞµÄÎ»ÖÃ£¬¼¯ºÏÅÅĞò´ÓµÍµ½¸ß
+         * è·å–æŒ‡å®šå€¼åœ¨é›†åˆä¸­çš„ä½ç½®ï¼Œé›†åˆæ’åºä»ä½åˆ°é«˜
          *
          * @param key
          * @param member
-         * @return long Î»ÖÃ
+         * @return long ä½ç½®
+         * @see
          */
         public long zrank(String key, String member) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long index = sjedis.zrank(key, member);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return index;
         }
 
         /**
-         * »ñÈ¡Ö¸¶¨ÖµÔÚ¼¯ºÏÖĞµÄÎ»ÖÃ£¬¼¯ºÏÅÅĞò´Ó¸ßµ½µÍ
+         * è·å–æŒ‡å®šå€¼åœ¨é›†åˆä¸­çš„ä½ç½®ï¼Œé›†åˆæ’åºä»é«˜åˆ°ä½
          *
          * @param key
          * @param member
-         * @return long Î»ÖÃ
+         * @return long ä½ç½®
+         * @see
          */
         public long zrevrank(String key, String member) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long index = sjedis.zrevrank(key, member);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return index;
         }
 
         /**
-         * ´Ó¼¯ºÏÖĞÉ¾³ı³ÉÔ±
+         * ä»é›†åˆä¸­åˆ é™¤æˆå‘˜
          *
          * @param key
          * @param member
-         * @return ·µ»Ø1³É¹¦
+         * @return è¿”å›1æˆåŠŸ
          */
         public long zrem(String key, String member) {
             Jedis jedis = getJedis();
             long s = jedis.zrem(key, member);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * É¾³ı
+         * åˆ é™¤
          *
          * @param key
          * @return
@@ -688,42 +711,42 @@ public class RedisUtil {
         public long zrem(String key) {
             Jedis jedis = getJedis();
             long s = jedis.del(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * É¾³ı¸ø¶¨Î»ÖÃÇø¼äµÄÔªËØ
+         * åˆ é™¤ç»™å®šä½ç½®åŒºé—´çš„å…ƒç´ 
          *
          * @param key
-         * @param start ¿ªÊ¼Çø¼ä£¬´Ó0¿ªÊ¼(°üº¬)
-         * @param end   ½áÊøÇø¼ä,-1Îª×îºóÒ»¸öÔªËØ(°üº¬)
-         * @return É¾³ıµÄÊıÁ¿
+         * @param start å¼€å§‹åŒºé—´ï¼Œä»0å¼€å§‹(åŒ…å«)
+         * @param end   ç»“æŸåŒºé—´,-1ä¸ºæœ€åä¸€ä¸ªå…ƒç´ (åŒ…å«)
+         * @return åˆ é™¤çš„æ•°é‡
          */
         public long zremrangeByRank(String key, int start, int end) {
             Jedis jedis = getJedis();
             long s = jedis.zremrangeByRank(key, start, end);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * É¾³ı¸ø¶¨È¨ÖØÇø¼äµÄÔªËØ
+         * åˆ é™¤ç»™å®šæƒé‡åŒºé—´çš„å…ƒç´ 
          *
          * @param key
-         * @param min ÏÂÏŞÈ¨ÖØ(°üº¬)
-         * @param max ÉÏÏŞÈ¨ÖØ(°üº¬)
-         * @return É¾³ıµÄÊıÁ¿
+         * @param min ä¸‹é™æƒé‡(åŒ…å«)
+         * @param max ä¸Šé™æƒé‡(åŒ…å«)
+         * @return åˆ é™¤çš„æ•°é‡
          */
         public long zremrangeByScore(String key, double min, double max) {
             Jedis jedis = getJedis();
             long s = jedis.zremrangeByScore(key, min, max);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * »ñÈ¡¸ø¶¨Çø¼äµÄÔªËØ£¬Ô­Ê¼°´ÕÕÈ¨ÖØÓÉ¸ßµ½µÍÅÅĞò
+         * è·å–ç»™å®šåŒºé—´çš„å…ƒç´ ï¼ŒåŸå§‹æŒ‰ç…§æƒé‡ç”±é«˜åˆ°ä½æ’åº
          *
          * @param key
          * @param start
@@ -734,22 +757,22 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<String> set = sjedis.zrevrange(key, start, end);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
         /**
-         * »ñÈ¡¸ø¶¨ÖµÔÚ¼¯ºÏÖĞµÄÈ¨ÖØ
+         * è·å–ç»™å®šå€¼åœ¨é›†åˆä¸­çš„æƒé‡
          *
          * @param key
-         * @param memebr
-         * @return double È¨ÖØ
+         * @param
+         * @return double æƒé‡
          */
         public double zscore(String key, String memebr) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Double score = sjedis.zscore(key, memebr);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             if (score != null) return score;
             return 0;
         }
@@ -759,53 +782,53 @@ public class RedisUtil {
     public class Hash {
 
         /**
-         * ´ÓhashÖĞÉ¾³ıÖ¸¶¨µÄ´æ´¢
+         * ä»hashä¸­åˆ é™¤æŒ‡å®šçš„å­˜å‚¨
          *
          * @param key
-         * @param fieid ´æ´¢µÄÃû×Ö
-         * @return ×´Ì¬Âë£¬1³É¹¦£¬0Ê§°Ü
+         * @param fieid å­˜å‚¨çš„åå­—
+         * @return çŠ¶æ€ç ï¼Œ1æˆåŠŸï¼Œ0å¤±è´¥
          */
         public long hdel(String key, String fieid) {
             Jedis jedis = getJedis();
             long s = jedis.hdel(key, fieid);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         public long hdel(String key) {
             Jedis jedis = getJedis();
             long s = jedis.del(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ²âÊÔhashÖĞÖ¸¶¨µÄ´æ´¢ÊÇ·ñ´æÔÚ
+         * æµ‹è¯•hashä¸­æŒ‡å®šçš„å­˜å‚¨æ˜¯å¦å­˜åœ¨
          *
          * @param key
-         * @param fieid ´æ´¢µÄÃû×Ö
-         * @return 1´æÔÚ£¬0²»´æÔÚ
+         * @param fieid å­˜å‚¨çš„åå­—
+         * @return 1å­˜åœ¨ï¼Œ0ä¸å­˜åœ¨
          */
         public boolean hexists(String key, String fieid) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             boolean s = sjedis.hexists(key, fieid);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return s;
         }
 
         /**
-         * ·µ»ØhashÖĞÖ¸¶¨´æ´¢Î»ÖÃµÄÖµ
+         * è¿”å›hashä¸­æŒ‡å®šå­˜å‚¨ä½ç½®çš„å€¼
          *
          * @param key
-         * @param fieid ´æ´¢µÄÃû×Ö
-         * @return ´æ´¢¶ÔÓ¦µÄÖµ
+         * @param fieid å­˜å‚¨çš„åå­—
+         * @return å­˜å‚¨å¯¹åº”çš„å€¼
          */
         public String hget(String key, String fieid) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             String s = sjedis.hget(key, fieid);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return s;
         }
 
@@ -813,12 +836,12 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             byte[] s = sjedis.hget(key, fieid);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return s;
         }
 
         /**
-         * ÒÔMapµÄĞÎÊ½·µ»ØhashÖĞµÄ´æ´¢ºÍÖµ
+         * ä»¥Mapçš„å½¢å¼è¿”å›hashä¸­çš„å­˜å‚¨å’Œå€¼
          *
          * @param key
          * @return Map<Strinig,String>
@@ -827,49 +850,49 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Map<String, String> map = sjedis.hgetAll(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return map;
         }
 
         /**
-         * Ìí¼ÓÒ»¸ö¶ÔÓ¦¹ØÏµ
+         * æ·»åŠ ä¸€ä¸ªå¯¹åº”å…³ç³»
          *
          * @param key
          * @param fieid
          * @param value
-         * @return ×´Ì¬Âë 1³É¹¦£¬0Ê§°Ü£¬fieidÒÑ´æÔÚ½«¸üĞÂ£¬Ò²·µ»Ø0
+         * @return çŠ¶æ€ç  1æˆåŠŸï¼Œ0å¤±è´¥ï¼Œfieidå·²å­˜åœ¨å°†æ›´æ–°ï¼Œä¹Ÿè¿”å›0
          **/
         public long hset(String key, String fieid, String value) {
             Jedis jedis = getJedis();
             long s = jedis.hset(key, fieid, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         public long hset(String key, String fieid, byte[] value) {
             Jedis jedis = getJedis();
             long s = jedis.hset(key.getBytes(), fieid.getBytes(), value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * Ìí¼Ó¶ÔÓ¦¹ØÏµ£¬Ö»ÓĞÔÚfieid²»´æÔÚÊ±²ÅÖ´ĞĞ
+         * æ·»åŠ å¯¹åº”å…³ç³»ï¼Œåªæœ‰åœ¨fieidä¸å­˜åœ¨æ—¶æ‰æ‰§è¡Œ
          *
          * @param key
          * @param fieid
          * @param value
-         * @return ×´Ì¬Âë 1³É¹¦£¬0Ê§°ÜfieidÒÑ´æ
+         * @return çŠ¶æ€ç  1æˆåŠŸï¼Œ0å¤±è´¥fieidå·²å­˜
          **/
         public long hsetnx(String key, String fieid, String value) {
             Jedis jedis = getJedis();
             long s = jedis.hsetnx(key, fieid, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * »ñÈ¡hashÖĞvalueµÄ¼¯ºÏ
+         * è·å–hashä¸­valueçš„é›†åˆ
          *
          * @param key
          * @return List<String>
@@ -878,99 +901,101 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<String> list = sjedis.hvals(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * ÔÚÖ¸¶¨µÄ´æ´¢Î»ÖÃ¼ÓÉÏÖ¸¶¨µÄÊı×Ö£¬´æ´¢Î»ÖÃµÄÖµ±ØĞë¿É×ªÎªÊı×ÖÀàĞÍ
+         * åœ¨æŒ‡å®šçš„å­˜å‚¨ä½ç½®åŠ ä¸ŠæŒ‡å®šçš„æ•°å­—ï¼Œå­˜å‚¨ä½ç½®çš„å€¼å¿…é¡»å¯è½¬ä¸ºæ•°å­—ç±»å‹
          *
          * @param key
-         * @param fieid ´æ´¢Î»ÖÃ
-         * @param value ÒªÔö¼ÓµÄÖµ,¿ÉÒÔÊÇ¸ºÊı
-         * @return Ôö¼ÓÖ¸¶¨Êı×Öºó£¬´æ´¢Î»ÖÃµÄÖµ
+         * @param fieid å­˜å‚¨ä½ç½®
+         * @param value è¦å¢åŠ çš„å€¼,å¯ä»¥æ˜¯è´Ÿæ•°
+         * @return å¢åŠ æŒ‡å®šæ•°å­—åï¼Œå­˜å‚¨ä½ç½®çš„å€¼
          */
         public long hincrby(String key, String fieid, long value) {
             Jedis jedis = getJedis();
             long s = jedis.hincrBy(key, fieid, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * ·µ»ØÖ¸¶¨hashÖĞµÄËùÓĞ´æ´¢Ãû×Ö,ÀàËÆMapÖĞµÄkeySet·½·¨
+         * è¿”å›æŒ‡å®šhashä¸­çš„æ‰€æœ‰å­˜å‚¨åå­—,ç±»ä¼¼Mapä¸­çš„keySetæ–¹æ³•
          *
          * @param key
-         * @return Set<String> ´æ´¢Ãû³ÆµÄ¼¯ºÏ
+         * @return Set<String> å­˜å‚¨åç§°çš„é›†åˆ
          */
         public Set<String> hkeys(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             Set<String> set = sjedis.hkeys(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return set;
         }
 
         /**
-         * »ñÈ¡hashÖĞ´æ´¢µÄ¸öÊı£¬ÀàËÆMapÖĞsize·½·¨
+         * è·å–hashä¸­å­˜å‚¨çš„ä¸ªæ•°ï¼Œç±»ä¼¼Mapä¸­sizeæ–¹æ³•
          *
          * @param key
-         * @return long ´æ´¢µÄ¸öÊı
+         * @return long å­˜å‚¨çš„ä¸ªæ•°
          */
         public long hlen(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long len = sjedis.hlen(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return len;
         }
 
         /**
-         * ¸ù¾İ¶à¸ökey£¬»ñÈ¡¶ÔÓ¦µÄvalue£¬·µ»ØList,Èç¹ûÖ¸¶¨µÄkey²»´æÔÚ,List¶ÔÓ¦Î»ÖÃÎªnull
+         * æ ¹æ®å¤šä¸ªkeyï¼Œè·å–å¯¹åº”çš„valueï¼Œè¿”å›List,å¦‚æœæŒ‡å®šçš„keyä¸å­˜åœ¨,Listå¯¹åº”ä½ç½®ä¸ºnull
          *
          * @param key
-         * @param fieids ´æ´¢Î»ÖÃ
+         * @param fieids å­˜å‚¨ä½ç½®
          * @return List<String>
          */
         public List<String> hmget(String key, String... fieids) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<String> list = sjedis.hmget(key, fieids);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         public List<byte[]> hmget(byte[] key, byte[]... fieids) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<byte[]> list = sjedis.hmget(key, fieids);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * Ìí¼Ó¶ÔÓ¦¹ØÏµ£¬Èç¹û¶ÔÓ¦¹ØÏµÒÑ´æÔÚ£¬Ôò¸²¸Ç
+         * æ·»åŠ å¯¹åº”å…³ç³»ï¼Œå¦‚æœå¯¹åº”å…³ç³»å·²å­˜åœ¨ï¼Œåˆ™è¦†ç›–
          *
          * @param key
-         * @param map ¶ÔÓ¦¹ØÏµ
-         * @return ×´Ì¬£¬³É¹¦·µ»ØOK
+         * @param
+         * @return çŠ¶æ€ï¼ŒæˆåŠŸè¿”å›OK
          */
         public String hmset(String key, Map<String, String> map) {
             Jedis jedis = getJedis();
             String s = jedis.hmset(key, map);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
         /**
-         * Ìí¼Ó¶ÔÓ¦¹ØÏµ£¬Èç¹û¶ÔÓ¦¹ØÏµÒÑ´æÔÚ£¬Ôò¸²¸Ç
+         * æ·»åŠ å¯¹åº”å…³ç³»ï¼Œå¦‚æœå¯¹åº”å…³ç³»å·²å­˜åœ¨ï¼Œåˆ™è¦†ç›–
          *
          * @param key
-         * @param map ¶ÔÓ¦¹ØÏµ
-         * @return ×´Ì¬£¬³É¹¦·µ»ØOK
+         * @param
+         * @return çŠ¶æ€ï¼ŒæˆåŠŸè¿”å›OK
          */
         public String hmset(byte[] key, Map<byte[], byte[]> map) {
             Jedis jedis = getJedis();
             String s = jedis.hmset(key, map);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return s;
         }
 
@@ -980,240 +1005,240 @@ public class RedisUtil {
     //*******************************************Strings*******************************************//
     public class Strings {
         /**
-         * ¸ù¾İkey»ñÈ¡¼ÇÂ¼
+         * æ ¹æ®keyè·å–è®°å½•
          *
          * @param key
-         * @return Öµ
+         * @return å€¼
          */
         public String get(String key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             String value = sjedis.get(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return value;
         }
 
         /**
-         * ¸ù¾İkey»ñÈ¡¼ÇÂ¼
+         * æ ¹æ®keyè·å–è®°å½•
          *
          * @param key
-         * @return Öµ
+         * @return å€¼
          */
         public byte[] get(byte[] key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             byte[] value = sjedis.get(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return value;
         }
 
         /**
-         * Ìí¼ÓÓĞ¹ıÆÚÊ±¼äµÄ¼ÇÂ¼
+         * æ·»åŠ æœ‰è¿‡æœŸæ—¶é—´çš„è®°å½•
          *
          * @param key
-         * @param seconds ¹ıÆÚÊ±¼ä£¬ÒÔÃëÎªµ¥Î»
+         * @param seconds è¿‡æœŸæ—¶é—´ï¼Œä»¥ç§’ä¸ºå•ä½
          * @param value
-         * @return String ²Ù×÷×´Ì¬
+         * @return String æ“ä½œçŠ¶æ€
          */
         public String setEx(String key, int seconds, String value) {
             Jedis jedis = getJedis();
             String str = jedis.setex(key, seconds, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * Ìí¼ÓÓĞ¹ıÆÚÊ±¼äµÄ¼ÇÂ¼
+         * æ·»åŠ æœ‰è¿‡æœŸæ—¶é—´çš„è®°å½•
          *
          * @param key
-         * @param seconds ¹ıÆÚÊ±¼ä£¬ÒÔÃëÎªµ¥Î»
+         * @param seconds è¿‡æœŸæ—¶é—´ï¼Œä»¥ç§’ä¸ºå•ä½
          * @param value
-         * @return String ²Ù×÷×´Ì¬
+         * @return String æ“ä½œçŠ¶æ€
          */
         public String setEx(byte[] key, int seconds, byte[] value) {
             Jedis jedis = getJedis();
             String str = jedis.setex(key, seconds, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * Ìí¼ÓÒ»Ìõ¼ÇÂ¼£¬½öµ±¸ø¶¨µÄkey²»´æÔÚÊ±²Å²åÈë
+         * æ·»åŠ ä¸€æ¡è®°å½•ï¼Œä»…å½“ç»™å®šçš„keyä¸å­˜åœ¨æ—¶æ‰æ’å…¥
          *
          * @param key
          * @param value
-         * @return long ×´Ì¬Âë£¬1²åÈë³É¹¦ÇÒkey²»´æÔÚ£¬0Î´²åÈë£¬key´æÔÚ
+         * @return long çŠ¶æ€ç ï¼Œ1æ’å…¥æˆåŠŸä¸”keyä¸å­˜åœ¨ï¼Œ0æœªæ’å…¥ï¼Œkeyå­˜åœ¨
          */
         public long setnx(String key, String value) {
             Jedis jedis = getJedis();
             long str = jedis.setnx(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * Ìí¼Ó¼ÇÂ¼,Èç¹û¼ÇÂ¼ÒÑ´æÔÚ½«¸²¸ÇÔ­ÓĞµÄvalue
+         * æ·»åŠ è®°å½•,å¦‚æœè®°å½•å·²å­˜åœ¨å°†è¦†ç›–åŸæœ‰çš„value
          *
          * @param key
          * @param value
-         * @return ×´Ì¬Âë
+         * @return çŠ¶æ€ç 
          */
         public String set(String key, String value) {
             return set(SafeEncoder.encode(key), SafeEncoder.encode(value));
         }
 
         /**
-         * Ìí¼Ó¼ÇÂ¼,Èç¹û¼ÇÂ¼ÒÑ´æÔÚ½«¸²¸ÇÔ­ÓĞµÄvalue
+         * æ·»åŠ è®°å½•,å¦‚æœè®°å½•å·²å­˜åœ¨å°†è¦†ç›–åŸæœ‰çš„value
          *
          * @param key
          * @param value
-         * @return ×´Ì¬Âë
+         * @return çŠ¶æ€ç 
          */
         public String set(String key, byte[] value) {
             return set(SafeEncoder.encode(key), value);
         }
 
         /**
-         * Ìí¼Ó¼ÇÂ¼,Èç¹û¼ÇÂ¼ÒÑ´æÔÚ½«¸²¸ÇÔ­ÓĞµÄvalue
+         * æ·»åŠ è®°å½•,å¦‚æœè®°å½•å·²å­˜åœ¨å°†è¦†ç›–åŸæœ‰çš„value
          *
          * @param key
          * @param value
-         * @return ×´Ì¬Âë
+         * @return çŠ¶æ€ç 
          */
         public String set(byte[] key, byte[] value) {
             Jedis jedis = getJedis();
             String status = jedis.set(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return status;
         }
 
         /**
-         * ´ÓÖ¸¶¨Î»ÖÃ¿ªÊ¼²åÈëÊı¾İ£¬²åÈëµÄÊı¾İ»á¸²¸ÇÖ¸¶¨Î»ÖÃÒÔºóµÄÊı¾İ<br/>
-         * Àı:String str1="123456789";<br/>
-         * ¶Ôstr1²Ù×÷ºósetRange(key,4,0000)£¬str1="123400009";
+         * ä»æŒ‡å®šä½ç½®å¼€å§‹æ’å…¥æ•°æ®ï¼Œæ’å…¥çš„æ•°æ®ä¼šè¦†ç›–æŒ‡å®šä½ç½®ä»¥åçš„æ•°æ®<br/>
+         * ä¾‹:String str1="123456789";<br/>
+         * å¯¹str1æ“ä½œåsetRange(key,4,0000)ï¼Œstr1="123400009";
          *
          * @param key
          * @param offset
          * @param value
-         * @return long valueµÄ³¤¶È
+         * @return long valueçš„é•¿åº¦
          */
         public long setRange(String key, long offset, String value) {
             Jedis jedis = getJedis();
             long len = jedis.setrange(key, offset, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return len;
         }
 
         /**
-         * ÔÚÖ¸¶¨µÄkeyÖĞ×·¼Óvalue
+         * åœ¨æŒ‡å®šçš„keyä¸­è¿½åŠ value
          *
          * @param key
          * @param value
-         * @return long ×·¼ÓºóvalueµÄ³¤¶È
+         * @return long è¿½åŠ åvalueçš„é•¿åº¦
          **/
         public long append(String key, String value) {
             Jedis jedis = getJedis();
             long len = jedis.append(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return len;
         }
 
         /**
-         * ½«key¶ÔÓ¦µÄvalue¼õÈ¥Ö¸¶¨µÄÖµ£¬Ö»ÓĞvalue¿ÉÒÔ×ªÎªÊı×ÖÊ±¸Ã·½·¨²Å¿ÉÓÃ
+         * å°†keyå¯¹åº”çš„valueå‡å»æŒ‡å®šçš„å€¼ï¼Œåªæœ‰valueå¯ä»¥è½¬ä¸ºæ•°å­—æ—¶è¯¥æ–¹æ³•æ‰å¯ç”¨
          *
          * @param key
-         * @param number Òª¼õÈ¥µÄÖµ
-         * @return long ¼õÖ¸¶¨ÖµºóµÄÖµ
+         * @param number è¦å‡å»çš„å€¼
+         * @return long å‡æŒ‡å®šå€¼åçš„å€¼
          */
         public long decrBy(String key, long number) {
             Jedis jedis = getJedis();
             long len = jedis.decrBy(key, number);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return len;
         }
 
         /**
-         * <b>¿ÉÒÔ×÷Îª»ñÈ¡Î¨Ò»idµÄ·½·¨</b><br/>
-         * ½«key¶ÔÓ¦µÄvalue¼ÓÉÏÖ¸¶¨µÄÖµ£¬Ö»ÓĞvalue¿ÉÒÔ×ªÎªÊı×ÖÊ±¸Ã·½·¨²Å¿ÉÓÃ
+         * <b>å¯ä»¥ä½œä¸ºè·å–å”¯ä¸€idçš„æ–¹æ³•</b><br/>
+         * å°†keyå¯¹åº”çš„valueåŠ ä¸ŠæŒ‡å®šçš„å€¼ï¼Œåªæœ‰valueå¯ä»¥è½¬ä¸ºæ•°å­—æ—¶è¯¥æ–¹æ³•æ‰å¯ç”¨
          *
          * @param key
-         * @param number Òª¼õÈ¥µÄÖµ
-         * @return long Ïà¼ÓºóµÄÖµ
+         * @param number è¦å‡å»çš„å€¼
+         * @return long ç›¸åŠ åçš„å€¼
          */
         public long incrBy(String key, long number) {
             Jedis jedis = getJedis();
             long len = jedis.incrBy(key, number);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return len;
         }
 
         /**
-         * ¶ÔÖ¸¶¨key¶ÔÓ¦µÄvalue½øĞĞ½ØÈ¡
+         * å¯¹æŒ‡å®škeyå¯¹åº”çš„valueè¿›è¡Œæˆªå–
          *
          * @param key
-         * @param startOffset ¿ªÊ¼Î»ÖÃ(°üº¬)
-         * @param endOffset   ½áÊøÎ»ÖÃ(°üº¬)
-         * @return String ½ØÈ¡µÄÖµ
+         * @param startOffset å¼€å§‹ä½ç½®(åŒ…å«)
+         * @param endOffset   ç»“æŸä½ç½®(åŒ…å«)
+         * @return String æˆªå–çš„å€¼
          */
         public String getrange(String key, long startOffset, long endOffset) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             String value = sjedis.getrange(key, startOffset, endOffset);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return value;
         }
 
         /**
-         * »ñÈ¡²¢ÉèÖÃÖ¸¶¨key¶ÔÓ¦µÄvalue<br/>
-         * Èç¹ûkey´æÔÚ·µ»ØÖ®Ç°µÄvalue,·ñÔò·µ»Ønull
+         * è·å–å¹¶è®¾ç½®æŒ‡å®škeyå¯¹åº”çš„value<br/>
+         * å¦‚æœkeyå­˜åœ¨è¿”å›ä¹‹å‰çš„value,å¦åˆ™è¿”å›null
          *
          * @param key
          * @param value
-         * @return String Ô­Ê¼value»ònull
+         * @return String åŸå§‹valueæˆ–null
          */
         public String getSet(String key, String value) {
             Jedis jedis = getJedis();
             String str = jedis.getSet(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * ÅúÁ¿»ñÈ¡¼ÇÂ¼,Èç¹ûÖ¸¶¨µÄkey²»´æÔÚ·µ»ØListµÄ¶ÔÓ¦Î»ÖÃ½«ÊÇnull
+         * æ‰¹é‡è·å–è®°å½•,å¦‚æœæŒ‡å®šçš„keyä¸å­˜åœ¨è¿”å›Listçš„å¯¹åº”ä½ç½®å°†æ˜¯null
          *
          * @param keys
-         * @return List<String> ÖµµÃ¼¯ºÏ
+         * @return List<String> å€¼å¾—é›†åˆ
          */
         public List<String> mget(String... keys) {
             Jedis jedis = getJedis();
             List<String> str = jedis.mget(keys);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * ÅúÁ¿´æ´¢¼ÇÂ¼
+         * æ‰¹é‡å­˜å‚¨è®°å½•
          *
-         * @param keysvalues Àı:keysvalues="key1","value1","key2","value2";
-         * @return String ×´Ì¬Âë
+         * @param keysvalues ä¾‹:keysvalues="key1","value1","key2","value2";
+         * @return String çŠ¶æ€ç 
          */
         public String mset(String... keysvalues) {
             Jedis jedis = getJedis();
             String str = jedis.mset(keysvalues);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * »ñÈ¡key¶ÔÓ¦µÄÖµµÄ³¤¶È
+         * è·å–keyå¯¹åº”çš„å€¼çš„é•¿åº¦
          *
          * @param key
-         * @return valueÖµµÃ³¤¶È
+         * @return valueå€¼å¾—é•¿åº¦
          */
         public long strlen(String key) {
             Jedis jedis = getJedis();
             long len = jedis.strlen(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return len;
         }
     }
@@ -1222,172 +1247,202 @@ public class RedisUtil {
     //*******************************************Lists*******************************************//
     public class Lists {
         /**
-         * List³¤¶È
+         * Listé•¿åº¦
          *
          * @param key
-         * @return ³¤¶È
+         * @return é•¿åº¦
          */
         public long llen(String key) {
             return llen(SafeEncoder.encode(key));
         }
 
         /**
-         * List³¤¶È
+         * Listé•¿åº¦
          *
          * @param key
-         * @return ³¤¶È
+         * @return é•¿åº¦
          */
         public long llen(byte[] key) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             long count = sjedis.llen(key);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return count;
         }
 
         /**
-         * ¸²¸Ç²Ù×÷,½«¸²¸ÇListÖĞÖ¸¶¨Î»ÖÃµÄÖµ
+         * è¦†ç›–æ“ä½œ,å°†è¦†ç›–Listä¸­æŒ‡å®šä½ç½®çš„å€¼
          *
          * @param key
-         * @param index Î»ÖÃ
-         * @param value Öµ
-         * @return ×´Ì¬Âë
+         * @param index ä½ç½®
+         * @param value å€¼
+         * @return çŠ¶æ€ç 
          */
         public String lset(byte[] key, int index, byte[] value) {
             Jedis jedis = getJedis();
             String status = jedis.lset(key, index, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return status;
         }
 
         /**
-         * ¸²¸Ç²Ù×÷,½«¸²¸ÇListÖĞÖ¸¶¨Î»ÖÃµÄÖµ
+         * è¦†ç›–æ“ä½œ,å°†è¦†ç›–Listä¸­æŒ‡å®šä½ç½®çš„å€¼
          *
-         * @param
-         * @param index Î»ÖÃ
-         * @param value Öµ
-         * @return ×´Ì¬Âë
+         * @param key
+         * @param index ä½ç½®
+         * @param value å€¼
+         * @return çŠ¶æ€ç 
          */
         public String lset(String key, int index, String value) {
             return lset(SafeEncoder.encode(key), index, SafeEncoder.encode(value));
         }
 
         /**
-         * »ñÈ¡ListÖĞÖ¸¶¨Î»ÖÃµÄÖµ
+         * åœ¨valueçš„ç›¸å¯¹ä½ç½®æ’å…¥è®°å½•
          *
          * @param key
-         * @param index Î»ÖÃ
-         * @return Öµ
+         * @param
+         * @param pivot ç›¸å¯¹ä½ç½®çš„å†…å®¹
+         * @param value æ’å…¥çš„å†…å®¹
+         * @return è®°å½•æ€»æ•°
+         */
+        public long linsert(String key, LIST_POSITION where, String pivot, String value) {
+            return linsert(SafeEncoder.encode(key), where, SafeEncoder.encode(pivot), SafeEncoder.encode(value));
+        }
+
+        /**
+         * åœ¨æŒ‡å®šä½ç½®æ’å…¥è®°å½•
+         *
+         * @param key
+         * @param
+         * @param pivot ç›¸å¯¹ä½ç½®çš„å†…å®¹
+         * @param value æ’å…¥çš„å†…å®¹
+         * @return è®°å½•æ€»æ•°
+         */
+        public long linsert(byte[] key, LIST_POSITION where, byte[] pivot, byte[] value) {
+            Jedis jedis = getJedis();
+            long count = jedis.linsert(key, where, pivot, value);
+            returnJedis(jedis);
+            return count;
+        }
+
+        /**
+         * è·å–Listä¸­æŒ‡å®šä½ç½®çš„å€¼
+         *
+         * @param key
+         * @param index ä½ç½®
+         * @return å€¼
          **/
         public String lindex(String key, int index) {
             return SafeEncoder.encode(lindex(SafeEncoder.encode(key), index));
         }
 
         /**
-         * »ñÈ¡ListÖĞÖ¸¶¨Î»ÖÃµÄÖµ
+         * è·å–Listä¸­æŒ‡å®šä½ç½®çš„å€¼
          *
          * @param key
-         * @param index Î»ÖÃ
-         * @return Öµ
+         * @param index ä½ç½®
+         * @return å€¼
          **/
         public byte[] lindex(byte[] key, int index) {
+            //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             byte[] value = sjedis.lindex(key, index);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return value;
         }
 
         /**
-         * ½«ListÖĞµÄµÚÒ»Ìõ¼ÇÂ¼ÒÆ³öList
+         * å°†Listä¸­çš„ç¬¬ä¸€æ¡è®°å½•ç§»å‡ºList
          *
          * @param key
-         * @return ÒÆ³öµÄ¼ÇÂ¼
+         * @return ç§»å‡ºçš„è®°å½•
          */
         public String lpop(String key) {
             return SafeEncoder.encode(lpop(SafeEncoder.encode(key)));
         }
 
         /**
-         * ½«ListÖĞµÄµÚÒ»Ìõ¼ÇÂ¼ÒÆ³öList
+         * å°†Listä¸­çš„ç¬¬ä¸€æ¡è®°å½•ç§»å‡ºList
          *
          * @param key
-         * @return ÒÆ³öµÄ¼ÇÂ¼
+         * @return ç§»å‡ºçš„è®°å½•
          */
         public byte[] lpop(byte[] key) {
             Jedis jedis = getJedis();
             byte[] value = jedis.lpop(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return value;
         }
 
         /**
-         * ½«ListÖĞ×îºóµÚÒ»Ìõ¼ÇÂ¼ÒÆ³öList
+         * å°†Listä¸­æœ€åç¬¬ä¸€æ¡è®°å½•ç§»å‡ºList
          *
          * @param key
-         * @return ÒÆ³öµÄ¼ÇÂ¼
+         * @return ç§»å‡ºçš„è®°å½•
          */
         public String rpop(String key) {
             Jedis jedis = getJedis();
             String value = jedis.rpop(key);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return value;
         }
 
         /**
-         * ÏòListÎ²²¿×·¼Ó¼ÇÂ¼
+         * å‘Listå°¾éƒ¨è¿½åŠ è®°å½•
          *
          * @param key
          * @param value
-         * @return ¼ÇÂ¼×ÜÊı
+         * @return è®°å½•æ€»æ•°
          */
         public long lpush(String key, String value) {
             return lpush(SafeEncoder.encode(key), SafeEncoder.encode(value));
         }
 
         /**
-         * ÏòListÍ·²¿×·¼Ó¼ÇÂ¼
+         * å‘Listå¤´éƒ¨è¿½åŠ è®°å½•
          *
          * @param key
          * @param value
-         * @return ¼ÇÂ¼×ÜÊı
+         * @return è®°å½•æ€»æ•°
          */
         public long rpush(String key, String value) {
             Jedis jedis = getJedis();
             long count = jedis.rpush(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * ÏòListÍ·²¿×·¼Ó¼ÇÂ¼
+         * å‘Listå¤´éƒ¨è¿½åŠ è®°å½•
          *
          * @param key
          * @param value
-         * @return ¼ÇÂ¼×ÜÊı
+         * @return è®°å½•æ€»æ•°
          */
         public long rpush(byte[] key, byte[] value) {
             Jedis jedis = getJedis();
             long count = jedis.rpush(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * ÏòListÖĞ×·¼Ó¼ÇÂ¼
+         * å‘Listä¸­è¿½åŠ è®°å½•
          *
          * @param key
          * @param value
-         * @return ¼ÇÂ¼×ÜÊı
+         * @return è®°å½•æ€»æ•°
          */
         public long lpush(byte[] key, byte[] value) {
             Jedis jedis = getJedis();
             long count = jedis.lpush(key, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * »ñÈ¡Ö¸¶¨·¶Î§µÄ¼ÇÂ¼£¬¿ÉÒÔ×öÎª·ÖÒ³Ê¹ÓÃ
+         * è·å–æŒ‡å®šèŒƒå›´çš„è®°å½•ï¼Œå¯ä»¥åšä¸ºåˆ†é¡µä½¿ç”¨
          *
          * @param key
          * @param start
@@ -1398,111 +1453,302 @@ public class RedisUtil {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<String> list = sjedis.lrange(key, start, end);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * »ñÈ¡Ö¸¶¨·¶Î§µÄ¼ÇÂ¼£¬¿ÉÒÔ×öÎª·ÖÒ³Ê¹ÓÃ
+         * è·å–æŒ‡å®šèŒƒå›´çš„è®°å½•ï¼Œå¯ä»¥åšä¸ºåˆ†é¡µä½¿ç”¨
          *
          * @param key
          * @param start
-         * @param end   Èç¹ûÎª¸ºÊı£¬ÔòÎ²²¿¿ªÊ¼¼ÆËã
+         * @param end   å¦‚æœä¸ºè´Ÿæ•°ï¼Œåˆ™å°¾éƒ¨å¼€å§‹è®¡ç®—
          * @return List
          */
         public List<byte[]> lrange(byte[] key, int start, int end) {
             //ShardedJedis sjedis = getShardedJedis();
             Jedis sjedis = getJedis();
             List<byte[]> list = sjedis.lrange(key, start, end);
-            closeJedis(sjedis);
+            returnJedis(sjedis);
             return list;
         }
 
         /**
-         * É¾³ıListÖĞcÌõ¼ÇÂ¼£¬±»É¾³ıµÄ¼ÇÂ¼ÖµÎªvalue
+         * åˆ é™¤Listä¸­cæ¡è®°å½•ï¼Œè¢«åˆ é™¤çš„è®°å½•å€¼ä¸ºvalue
          *
          * @param key
-         * @param c     ÒªÉ¾³ıµÄÊıÁ¿£¬Èç¹ûÎª¸ºÊıÔò´ÓListµÄÎ²²¿¼ì²é²¢É¾³ı·ûºÏµÄ¼ÇÂ¼
-         * @param value ÒªÆ¥ÅäµÄÖµ
-         * @return É¾³ıºóµÄListÖĞµÄ¼ÇÂ¼Êı
+         * @param c     è¦åˆ é™¤çš„æ•°é‡ï¼Œå¦‚æœä¸ºè´Ÿæ•°åˆ™ä»Listçš„å°¾éƒ¨æ£€æŸ¥å¹¶åˆ é™¤ç¬¦åˆçš„è®°å½•
+         * @param value è¦åŒ¹é…çš„å€¼
+         * @return åˆ é™¤åçš„Listä¸­çš„è®°å½•æ•°
          */
         public long lrem(byte[] key, int c, byte[] value) {
             Jedis jedis = getJedis();
             long count = jedis.lrem(key, c, value);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return count;
         }
 
         /**
-         * É¾³ıListÖĞcÌõ¼ÇÂ¼£¬±»É¾³ıµÄ¼ÇÂ¼ÖµÎªvalue
+         * åˆ é™¤Listä¸­cæ¡è®°å½•ï¼Œè¢«åˆ é™¤çš„è®°å½•å€¼ä¸ºvalue
          *
          * @param key
-         * @param c     ÒªÉ¾³ıµÄÊıÁ¿£¬Èç¹ûÎª¸ºÊıÔò´ÓListµÄÎ²²¿¼ì²é²¢É¾³ı·ûºÏµÄ¼ÇÂ¼
-         * @param value ÒªÆ¥ÅäµÄÖµ
-         * @return É¾³ıºóµÄListÖĞµÄ¼ÇÂ¼Êı
+         * @param c     è¦åˆ é™¤çš„æ•°é‡ï¼Œå¦‚æœä¸ºè´Ÿæ•°åˆ™ä»Listçš„å°¾éƒ¨æ£€æŸ¥å¹¶åˆ é™¤ç¬¦åˆçš„è®°å½•
+         * @param value è¦åŒ¹é…çš„å€¼
+         * @return åˆ é™¤åçš„Listä¸­çš„è®°å½•æ•°
          */
         public long lrem(String key, int c, String value) {
             return lrem(SafeEncoder.encode(key), c, SafeEncoder.encode(value));
         }
 
         /**
-         * ËãÊÇÉ¾³ı°É£¬Ö»±£ÁôstartÓëendÖ®¼äµÄ¼ÇÂ¼
+         * ç®—æ˜¯åˆ é™¤å§ï¼Œåªä¿ç•™startä¸endä¹‹é—´çš„è®°å½•
          *
          * @param key
-         * @param start ¼ÇÂ¼µÄ¿ªÊ¼Î»ÖÃ(0±íÊ¾µÚÒ»Ìõ¼ÇÂ¼)
-         * @param end   ¼ÇÂ¼µÄ½áÊøÎ»ÖÃ£¨Èç¹ûÎª-1Ôò±íÊ¾×îºóÒ»¸ö£¬-2£¬-3ÒÔ´ËÀàÍÆ£©
-         * @return Ö´ĞĞ×´Ì¬Âë
+         * @param start è®°å½•çš„å¼€å§‹ä½ç½®(0è¡¨ç¤ºç¬¬ä¸€æ¡è®°å½•)
+         * @param end   è®°å½•çš„ç»“æŸä½ç½®ï¼ˆå¦‚æœä¸º-1åˆ™è¡¨ç¤ºæœ€åä¸€ä¸ªï¼Œ-2ï¼Œ-3ä»¥æ­¤ç±»æ¨ï¼‰
+         * @return æ‰§è¡ŒçŠ¶æ€ç 
          */
         public String ltrim(byte[] key, int start, int end) {
             Jedis jedis = getJedis();
             String str = jedis.ltrim(key, start, end);
-            closeJedis(jedis);
+            returnJedis(jedis);
             return str;
         }
 
         /**
-         * ËãÊÇÉ¾³ı°É£¬Ö»±£ÁôstartÓëendÖ®¼äµÄ¼ÇÂ¼
+         * ç®—æ˜¯åˆ é™¤å§ï¼Œåªä¿ç•™startä¸endä¹‹é—´çš„è®°å½•
          *
          * @param key
-         * @param start ¼ÇÂ¼µÄ¿ªÊ¼Î»ÖÃ(0±íÊ¾µÚÒ»Ìõ¼ÇÂ¼)
-         * @param end   ¼ÇÂ¼µÄ½áÊøÎ»ÖÃ£¨Èç¹ûÎª-1Ôò±íÊ¾×îºóÒ»¸ö£¬-2£¬-3ÒÔ´ËÀàÍÆ£©
-         * @return Ö´ĞĞ×´Ì¬Âë
+         * @param start è®°å½•çš„å¼€å§‹ä½ç½®(0è¡¨ç¤ºç¬¬ä¸€æ¡è®°å½•)
+         * @param end   è®°å½•çš„ç»“æŸä½ç½®ï¼ˆå¦‚æœä¸º-1åˆ™è¡¨ç¤ºæœ€åä¸€ä¸ªï¼Œ-2ï¼Œ-3ä»¥æ­¤ç±»æ¨ï¼‰
+         * @return æ‰§è¡ŒçŠ¶æ€ç 
          */
         public String ltrim(String key, int start, int end) {
             return ltrim(SafeEncoder.encode(key), start, end);
         }
     }
 
+
+    private static final String LOCK_SUCCESS = "OK";
+    private static final String SET_IF_NOT_EXIST = "NX";
+    private static final String SET_WITH_EXPIRE_TIME = "PX";
+
+    /**
+     * å°è¯•è·å–åˆ†å¸ƒå¼é”
+     *
+     * @param lockKey    é”
+     * @param requestId  è¯·æ±‚æ ‡è¯†
+     * @param expireTime è¶…æœŸæ—¶é—´
+     * @return æ˜¯å¦è·å–æˆåŠŸ
+     */
+    public boolean tryGetDistributedLock(String lockKey, String requestId, int expireTime) {
+
+        String result = getJedis().set(lockKey, requestId, SET_IF_NOT_EXIST, SET_WITH_EXPIRE_TIME, expireTime);
+
+        if (LOCK_SUCCESS.equals(result)) {
+            return true;
+        }
+        return false;
+
+    }
+
+    private static final Long RELEASE_SUCCESS = 1L;
+
+    /**
+     * é‡Šæ”¾åˆ†å¸ƒå¼é”
+     *
+     * @param lockKey   é”
+     * @param requestId è¯·æ±‚æ ‡è¯†
+     * @return æ˜¯å¦é‡Šæ”¾æˆåŠŸ
+     */
+    public boolean releaseDistributedLock(String lockKey, String requestId) {
+
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+        Object result = getJedis().eval(script, Collections.singletonList(lockKey), Collections.singletonList(requestId));
+
+        if (RELEASE_SUCCESS.equals(result)) {
+            return true;
+        }
+        return false;
+
+    }
+
     public static void main(String[] args) {
-       /* Map<String, Object> map = new HashMap();
-        map.put("1", 1);
-        map.put("2", "sfasdfa");
-        map.put("3", "sfawrwere3fa");
+/*        RedisUtil redisUtil= RedisUtil.getInstance();
+        RedisUtil.Strings strings=redisUtil.new Strings();
+        strings.set("nnn", "nnnn");
+        System.out.println("-----"+strings.get("nnn"));
 
-        String werwe = RedisUtil.getInstance().strings().set("werwe", JSON.toJSONString(map));
-        System.out.println(werwe);
-        String s = RedisUtil.getInstance().strings().get("werwe");
-        System.out.println(s);*/
-   /*     RedisUtil.getInstance().keys.expire("xzx");
-        System.out.println(RedisUtil.getInstance().keys.exists("xzx"));
-        System.out.println(RedisUtil.getInstance().keys.ttl("xzx"));*/
+        Jedis jedis=redisUtil.getInstance().getJedis();
+        for (int i = 0; i < 10; i++) {
+            jedis.set("test", "test");
+            System.out.println(i+"=="+jedis.get("test"));
 
-/*        RedisUtil.getInstance().lists.lpush("list", "xzx1");
-        RedisUtil.getInstance().lists.lpush("list", "xzx2");*/
-        //RedisUtil.getInstance().lists.lpop("list");
+        }
+        RedisUtil.getInstance().returnJedis(jedis);*/
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(4);
 
+        RedisUtil redisUtil = RedisUtil.getInstance();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+                String requestId = UUID.randomUUID().toString();
+                System.out.println(Thread.currentThread().getName() + " is getting lock");
+                boolean lock = redisUtil.tryGetDistributedLock("name4", requestId, 50000000);
+                if (lock) {
+                    System.out.println(Thread.currentThread().getName() + " get lock success");
 
-        //RedisUtil.getInstance().lists.lrem("list",-1,"xzx");
+                    redisUtil.new Strings().set("name4", Thread.currentThread().getName());
+                    System.out.println(Thread.currentThread().getName() + " is releasing lock;");
+                    redisUtil.releaseDistributedLock("name4", requestId);
+                    System.out.println(Thread.currentThread().getName() + " release lock success;");
+                } else {
+                    System.out.println(Thread.currentThread().getName() + " get lock fail");
+                    while (true) {
+                        String val = redisUtil.new Strings().get("name4");
+                        if (!StringUtils.isEmpty(val) && !checkUuid(val)) {
+                            break;
+                        }
+                        try {
+                            Thread.sleep(5);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println(Thread.currentThread().getName() + " get value by name4:" + redisUtil.new Strings().get("name4"));
+            }
+        }, "thread_1").start();
 
-        /*List<String> list = RedisUtil.getInstance().lists.lrange("list",0,5);
-        System.out.println(list);*/
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+                String requestId = UUID.randomUUID().toString();
+                System.out.println(Thread.currentThread().getName() + " is getting lock");
+                boolean lock = redisUtil.tryGetDistributedLock("name4", requestId, 50000000);
+                if (lock) {
+                    System.out.println(Thread.currentThread().getName() + " get lock success");
 
-       /* RedisUtil.getInstance().keys.flushAll();
-        String[] keyValue = {"name1","xzx1","name2","xzx2","name3","xzx3"};
-        System.out.println(RedisUtil.getInstance().strings.mset(keyValue));*/
+                    redisUtil.new Strings().set("name4", Thread.currentThread().getName());
+                    System.out.println(Thread.currentThread().getName() + " is releasing lock;");
+                    redisUtil.releaseDistributedLock("name4", requestId);
+                    System.out.println(Thread.currentThread().getName() + " release lock success;");
+                } else {
+                    System.out.println(Thread.currentThread().getName() + " get lock fail");
+                    while (true) {
+                        String val = redisUtil.new Strings().get("name4");
+                        if (!StringUtils.isEmpty(val) && !checkUuid(val)) {
+                            break;
+                        }
+                        try {
+                            Thread.sleep(5);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println(Thread.currentThread().getName() + " get value by name4:" + redisUtil.new Strings().get("name4"));
+            }
+        }, "thread_2").start();
 
-        System.out.println(RedisUtil.getInstance().keys.expire("sdfg"));
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+                String requestId = UUID.randomUUID().toString();
+                System.out.println(Thread.currentThread().getName() + " is getting lock");
+                boolean lock = redisUtil.tryGetDistributedLock("name4", requestId, 50000000);
+                if (lock) {
+                    System.out.println(Thread.currentThread().getName() + " get lock success");
 
+                    redisUtil.new Strings().set("name4", Thread.currentThread().getName());
+                    System.out.println(Thread.currentThread().getName() + " is releasing lock;");
+                    redisUtil.releaseDistributedLock("name4", requestId);
+                    System.out.println(Thread.currentThread().getName() + " release lock success;");
+                } else {
+                    System.out.println(Thread.currentThread().getName() + " get lock fail");
+                    while (true) {
+                        String val = redisUtil.new Strings().get("name4");
+                        if (!StringUtils.isEmpty(val) && !checkUuid(val)) {
+                            break;
+                        }
+                        try {
+                            Thread.sleep(5);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println(Thread.currentThread().getName() + " get value by name4:" + redisUtil.new Strings().get("name4"));
+            }
+        }, "thread_3").start();
 
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+                String requestId = UUID.randomUUID().toString();
+                System.out.println(Thread.currentThread().getName() + " is getting lock");
+                boolean lock = redisUtil.tryGetDistributedLock("name4", requestId, 50000000);
+                if (lock) {
+                    System.out.println(Thread.currentThread().getName() + " get lock success");
+
+                    redisUtil.new Strings().set("name4", Thread.currentThread().getName());
+                    System.out.println(Thread.currentThread().getName() + " is releasing lock;");
+                    redisUtil.releaseDistributedLock("name4", requestId);
+                    System.out.println(Thread.currentThread().getName() + " release lock success;");
+                } else {
+                    System.out.println(Thread.currentThread().getName() + " get lock fail");
+                    while (true) {
+                        String val = redisUtil.new Strings().get("name4");
+                        if (!StringUtils.isEmpty(val) && !checkUuid(val)) {
+                            break;
+                        }
+                        try {
+                            Thread.sleep(5);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println(Thread.currentThread().getName() + " get value by name4:" + redisUtil.new Strings().get("name4"));
+            }
+        }, "thread_4").start();
+    }
+
+    private static boolean checkUuid(String uuid) {
+        boolean isUuid = false;
+
+        if (uuid.matches("(\\w{8}(-\\w{4}){3}-\\w{12}?)")){
+            return true;
+        }
+
+        return isUuid;
     }
 }
