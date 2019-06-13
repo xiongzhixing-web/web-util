@@ -1,46 +1,33 @@
 
+/************************linux***********************************/
 ps aux | grep tomcat 查看进程
-
 sudo kill -9 24289 杀死进程
-
-SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   查看被锁记录
-
 grep -C 5 'NullPointerException' ./catalina.out 
-
- sed -n '266299,266399p' ./catalina.out
-
-这样你就可以只查看文件的第5行到第10行
-
-
+sed -n '266299,266399p' ./catalina.out    这样你就可以只查看文件的第5行到第10行
 grep -n 'NullPointerException' ./catalina.out   显示行号以及所在行
-
 grep apple fruitlist.txt | grep -v pineapple   排除
-
+grep -nlr  'name'  . 意思是在当前目录递归搜索“name”，并在结果里显示行号。
 netstat -an | grep 8788   查看端口占用
-
-https://github.com/chenyangsocool/ssm      ssm地址
-
 rcho >> klllf.log   日志重定向
-
 webbench -c 并发数 -t 并发时间 网址
- 
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
+find -name .svn |xargs rm -rf  移除满足条件的所有文件：
 
-
+/******************************git***************************************/
 git tag
-
 git push --tag
-
-
 $ git tag -d ola_v1.0_b14
 $ git push origin --delete tag ola_v1.0_b14
+git checkout -b my-test  //在当前分支下创建my-test的本地分支分支
+git push origin my-test  //将my-test分支推送到远程
+git branch --set-upstream-to=origin/my-test //将本地分支my-test关联到远程分支my-test上   
+git branch -a //查看远程分支 
+git merge test；  合并分支
+/******************************git***************************************/
 
-移除满足条件的所有文件：find -name .svn |xargs rm -rf
 
 
-https://blog.csdn.net/cyljbq/article/details/42672501   webservice
-
-
+/*********************************mysql***********************************/
 DELIMITER |
 create trigger tri_after_insert_code_unit_str after insert
 on code_unit_str for each row
@@ -71,6 +58,9 @@ flag_while:while eIndex != 0  do
  end while flag_while;  /*循环结束*/
 end|
 DELIMITER ;
+
+SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   查看被锁记录
+/**************************************************************************************/
 
   Pattern p = Pattern.compile("\\s*//[^/]+$");
 
