@@ -6,9 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -16,6 +14,7 @@ import java.lang.reflect.ParameterizedType;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -99,7 +98,7 @@ public class ApiGenerateUtil {
         private boolean isFill;  //是否必填
         private String paramName;  //参数名字
         private String paramType;   //参数类型
-        private Object subParamType;  //子参数类型
+        private List<ParamType> subParamType;  //子参数类型
 
         public String getCommon() {
             return common;
@@ -133,16 +132,19 @@ public class ApiGenerateUtil {
             this.paramType = paramType;
         }
 
-        public Object getSubParamType() {
+        public List<ParamType> getSubParamType() {
             return subParamType;
         }
 
-        public void setSubParamType(Object subParamType) {
+        public void setSubParamType(List<ParamType> subParamType) {
             this.subParamType = subParamType;
         }
     }
 
     private final static String PACKAGE_PATH = "com.soecode.lyf.web";
+    private final static String API_PATH = "C:\\Users\\Administrator\\Desktop\\doc";
+    private final static String API_TEMPLATE = "**简要描述：** \n" + "\n" + "- 用户注册接口\n" + "\n" + "**请求URL：** \n" + "- {0}\n" + "  \n" + "**请求方式：**\n" + "- {1}\n" + "\n" + "**参数：** \n" + "\n" + "|参数名|必选|类型|说明|\n" + "|:----    |:---|:----- |-----   |\n" + "{2}\n" + "\n" + " **返回参数说明** \n" + "\n" + "|参数名|类型|说明|\n" + "|:-----  |:-----|----- |\n" + "{3}";
+    private final static String URI = "http://xxx.com";
     public static void main(String[] args) {
         List<Class<?>> classList = getClasses(PACKAGE_PATH);
 
@@ -217,7 +219,7 @@ public class ApiGenerateUtil {
                                     Class cls = (Class) ((ParameterizedType)parameter.getParameterizedType()).getActualTypeArguments()[0];
                                     List<ParamType> paramTypeList = new ArrayList<>();
                                     for(Field tField:cls.getDeclaredFields()){
-                                        ParamType subPparamType = setSubClass(tField);
+                                        ParamType subPparamType = setSubClass(tField,null,false);
                                         if(subPparamType != null){
                                             paramTypeList.add(subPparamType);
                                         }
@@ -243,7 +245,7 @@ public class ApiGenerateUtil {
                         Class cls = parameter.getType();
                         List<ParamType> paramTypeList = new ArrayList<>();
                         for(Field tField:cls.getDeclaredFields()){
-                            ParamType subPparamType = setSubClass(tField);
+                            ParamType subPparamType = setSubClass(tField,null,false);
                             if(subPparamType != null){
                                 paramTypeList.add(subPparamType);
                             }
@@ -253,24 +255,152 @@ public class ApiGenerateUtil {
                     }
                 }
                 methodType.setReqList(paramTypeReqList);  //方法设置请求参数列表
-                // TODO  respList
+                //respList
+                List<ParamType> paramTypeResqList = new ArrayList<>();
+                Field[] fields = method.getReturnType().getDeclaredFields();   //参数类型
+                String clsPath = ((ParameterizedType)(method.getGenericReturnType())).getActualTypeArguments()[0].getTypeName();
+                Class tCls = null;
+                boolean isCollection = false;
+                if(clsPath.contains("java.util.List")){  //集合
+                    tCls = (Class)((ParameterizedType)((ParameterizedType)method.getAnnotatedReturnType().getType()).getActualTypeArguments()[0]).getActualTypeArguments()[0];
+                    isCollection = true;
+                }else{
+                    tCls = (Class)((ParameterizedType)(method.getAnnotatedReturnType().getType())).getActualTypeArguments()[0];  //参数中泛型类型
+                }
 
+                for(Field field:fields){
+                    if(field.isAnnotationPresent(DocAnnotation.class)){
+                        //只有泛型数据才需要兼容，其他走正常情况
+                        ParamType paramType = null;
+                        if("data".equals(field.getName())){  //泛型
+                            paramType = setSubClass(field,tCls,isCollection);
+                        }else{
+                            paramType = setSubClass(field,null,false);
+                        }
+                        if(paramType != null){
+                            paramTypeResqList.add(paramType);
+                        }
+                    }
+                }
+                methodType.setRespList(paramTypeResqList);  //方法设置请求参数列表
                 methodTypeList.add(methodType); //设置方法列表
             }
             classType.setMethodTypeList(methodTypeList);  //设置方法对象
             classTypeList.add(classType);  //设置类对象
         }
+
         System.out.println(JSON.toJSONString(classTypeList));
+
+        //生成文档
+        for(ClassType classType:classTypeList){
+            for(MethodType methodType:classType.getMethodTypeList()){
+                String path = getPath(classType.getPath(),methodType.getPath());
+                String reqMethod = methodType.requestMethods.toString();
+
+                StringBuilder reqStr = new StringBuilder("");
+                generateParamStr(reqStr,methodType.getReqList(),"");
+
+                StringBuilder resqStr = new StringBuilder("");
+                generateParamStr(resqStr,methodType.getRespList(),"");
+
+                String apiDoc = MessageFormat.format(API_TEMPLATE,new Object[]{path,reqMethod,reqStr.toString(),resqStr.toString()});
+
+                writeFile(API_PATH, methodType.path.replace("/",".") + ".txt",apiDoc);
+            }
+        }
     }
-    //如果不是java类型，设置子类型
-    private static ParamType setSubClass(Field field){
+
+    private static void writeFile(String path,String fileName,String content){
+        File file = new File(path);
+        if(file.exists()){
+            file.delete();
+        }
+        file.mkdir();
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileOutputStream(file.getAbsolutePath() + File.separatorChar + fileName));
+            pw.print(content);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if(pw != null){
+                try {
+                    pw.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private static void generateParamStr(StringBuilder strBul,List<ParamType> paramTypeList,String splitChar){
+        if(paramTypeList == null || paramTypeList.size() == 0){
+            return;
+        }
+        for(ParamType paramType:paramTypeList){
+            strBul.append("|").append(splitChar).append(paramType.getParamName()).append("|")
+                    .append(paramType.isFill() ? "是":"否").append("|").append(paramType.getParamType())
+                    .append("|").append(paramType.getParamName()).append("|").append("\n");
+            if(paramType.getSubParamType() != null){
+                generateParamStr(strBul,paramType.getSubParamType(),splitChar + "  ");
+            }
+        }
+    }
+
+    private static String getPath(String classPath,String methodPath){
+        return trim(URI,'/') + "/" + trim(classPath,'/') + '/' + trim(methodPath,'/');
+    }
+
+    private static String trim(String str,char ch){
+        if(str == null){
+            return str;
+        }
+        if(str.startsWith(ch + "")){
+            str = str.substring(1);
+        }
+        if(str.endsWith(ch + "")){
+            str = str.substring(0,str.length() - 1);
+        }
+        return str;
+    }
+    /**
+     *  如果不是java类型，设置子类型
+     * @param field  域对象，这里如果是泛型，field是object
+     * @param genericCls 如果是泛型，需要传Class对象
+     * @param isCollection 是否是泛型集合
+     * @return
+     */
+    private static ParamType setSubClass(Field field,Class genericCls,boolean isCollection){
         if(!field.isAnnotationPresent(DocAnnotation.class)){
             return null;
         }
         ParamType paramType = new ParamType();
-        if(isJavaClass(field.getType())){  //java类型
-            if(isClassCollection(field.getType())){  //java集合,
-                if(field.getType().getName().contains("List")){  //只考虑List
+        if(genericCls == null){
+            if(isJavaClass(field.getType())){  //java类型
+                if(isClassCollection(field.getType())){  //java集合,
+                    if(field.getType().getName().contains("List")){  //只考虑List
+                        if(field.isAnnotationPresent(DocAnnotation.class)){
+                            DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
+
+                            paramType.setCommon(docAnnotation.comment());
+                            paramType.setFill(docAnnotation.isFill());
+                            paramType.setParamName(field.getName());
+                            paramType.setParamType(getSimpleType(field.getType().getName()));
+                            //Class cls = field.getGenericType().getTypeName().getClass();
+                            if(field.getGenericType() instanceof ParameterizedType){
+                                Class cls = (Class) ((ParameterizedType)field.getGenericType()).getActualTypeArguments()[0];
+                                List<ParamType> paramTypeList = new ArrayList<>();
+                                for(Field tField:cls.getDeclaredFields()){
+                                    ParamType subPparamType = setSubClass(tField,null,false);
+                                    if(subPparamType != null){
+                                        paramTypeList.add(subPparamType);
+                                    }
+                                }
+                                paramType.setSubParamType(paramTypeList);
+                            }
+                        }
+                    }
+                }else{  //java 常用基本类型
                     if(field.isAnnotationPresent(DocAnnotation.class)){
                         DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
 
@@ -278,21 +408,9 @@ public class ApiGenerateUtil {
                         paramType.setFill(docAnnotation.isFill());
                         paramType.setParamName(field.getName());
                         paramType.setParamType(getSimpleType(field.getType().getName()));
-                        //Class cls = field.getGenericType().getTypeName().getClass();
-                        if(field.getGenericType() instanceof ParameterizedType){
-                            Class cls = (Class) ((ParameterizedType)field.getGenericType()).getActualTypeArguments()[0];
-                            List<ParamType> paramTypeList = new ArrayList<>();
-                            for(Field tField:cls.getDeclaredFields()){
-                                ParamType subPparamType = setSubClass(tField);
-                                if(subPparamType != null){
-                                    paramTypeList.add(subPparamType);
-                                }
-                            }
-                            paramType.setSubParamType(paramTypeList);
-                        }
                     }
                 }
-            }else{  //java 常用基本类型
+            }else{ //自定义对象
                 if(field.isAnnotationPresent(DocAnnotation.class)){
                     DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
 
@@ -300,21 +418,55 @@ public class ApiGenerateUtil {
                     paramType.setFill(docAnnotation.isFill());
                     paramType.setParamName(field.getName());
                     paramType.setParamType(getSimpleType(field.getType().getName()));
+
+                    Class cls = field.getType();
+                    List<ParamType> paramTypeList = new ArrayList<>();
+                    for(Field tField:cls.getDeclaredFields()){
+                        ParamType subPparamType = setSubClass(tField,null,false);
+                        if(subPparamType != null){
+                            paramTypeList.add(subPparamType);
+                        }
+                    }
+                    paramType.setSubParamType(paramTypeList);
                 }
             }
-        }else{ //自定义对象
-            if(field.isAnnotationPresent(DocAnnotation.class)){
+        }else{  //针对泛型类做兼容
+            if(isCollection){
+                if(isJavaClass(genericCls)){  //是java基本类型
+                    DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
+
+                    paramType.setCommon(docAnnotation.comment());
+                    paramType.setFill(docAnnotation.isFill());
+                    paramType.setParamName(field.getName());
+                    paramType.setParamType("List");
+                }else{ //自定义类型
+                    DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
+
+                    paramType.setCommon(docAnnotation.comment());
+                    paramType.setFill(docAnnotation.isFill());
+                    paramType.setParamName(field.getName());
+                    paramType.setParamType("List");
+
+                    List<ParamType> paramTypeList = new ArrayList<>();
+                    for(Field tField:genericCls.getDeclaredFields()){
+                        ParamType subPparamType = setSubClass(tField,null,false);
+                        if(subPparamType != null){
+                            paramTypeList.add(subPparamType);
+                        }
+                    }
+                    paramType.setSubParamType(paramTypeList);
+                }
+            }else{  //不是集合
                 DocAnnotation docAnnotation = field.getAnnotation(DocAnnotation.class);
 
                 paramType.setCommon(docAnnotation.comment());
                 paramType.setFill(docAnnotation.isFill());
                 paramType.setParamName(field.getName());
-                paramType.setParamType(getSimpleType(field.getType().getName()));
+                paramType.setParamType(getSimpleType(genericCls.getName()));
 
-                Class cls = field.getType();
                 List<ParamType> paramTypeList = new ArrayList<>();
-                for(Field tField:cls.getDeclaredFields()){
-                    ParamType subPparamType = setSubClass(tField);
+                for(Field tField:genericCls.getDeclaredFields()){
+                    ParamType subPparamType = setSubClass(tField,null,false);
                     if(subPparamType != null){
                         paramTypeList.add(subPparamType);
                     }
@@ -322,6 +474,7 @@ public class ApiGenerateUtil {
                 paramType.setSubParamType(paramTypeList);
             }
         }
+
         return paramType;
     }
 
