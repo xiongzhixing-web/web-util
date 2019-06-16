@@ -143,7 +143,7 @@ public class ApiGenerateUtil {
 
     private final static String PACKAGE_PATH = "com.soecode.lyf.web";
     private final static String API_PATH = "C:\\Users\\Administrator\\Desktop\\doc";
-    private final static String API_TEMPLATE = "**简要描述：** \n" + "\n" + "- 用户注册接口\n" + "\n" + "**请求URL：** \n" + "- {0}\n" + "  \n" + "**请求方式：**\n" + "- {1}\n" + "\n" + "**参数：** \n" + "\n" + "|参数名|必选|类型|说明|\n" + "|:----    |:---|:----- |-----   |\n" + "{2}\n" + "\n" + " **返回参数说明** \n" + "\n" + "|参数名|类型|说明|\n" + "|:-----  |:-----|----- |\n" + "{3}";
+    private final static String API_TEMPLATE = "**简要描述：** \n" + "\n" + "- {0}\n" + "\n" + "**请求URL：** \n" + "- {1}\n" + "  \n" + "**请求方式：**\n" + "- {2}\n" + "\n" + "**参数：** \n" + "\n" + "|参数名|必选|类型|说明|\n" + "|:----    |:---|:----- |-----   |\n" + "{3}\n" + "\n" + " **返回参数说明** \n" + "\n" + "|参数名|类型|说明|\n" + "|:-----  |:-----|----- |\n" + "{4}";
     private final static String URI = "http://xxx.com";
     public static void main(String[] args) {
         List<Class<?>> classList = getClasses(PACKAGE_PATH);
@@ -292,10 +292,14 @@ public class ApiGenerateUtil {
         System.out.println(JSON.toJSONString(classTypeList));
 
         //生成文档
+        File file = new File(API_PATH);
+        deleteFile(file);
+        file.mkdir();
         for(ClassType classType:classTypeList){
             for(MethodType methodType:classType.getMethodTypeList()){
+                String apiDesc = methodType.getCommon() == null ? "" : methodType.getCommon();
                 String path = getPath(classType.getPath(),methodType.getPath());
-                String reqMethod = methodType.requestMethods.toString();
+                String reqMethod = Arrays.toString(methodType.requestMethods);
 
                 StringBuilder reqStr = new StringBuilder("");
                 generateParamStr(reqStr,methodType.getReqList(),"");
@@ -303,7 +307,7 @@ public class ApiGenerateUtil {
                 StringBuilder resqStr = new StringBuilder("");
                 generateParamStr(resqStr,methodType.getRespList(),"");
 
-                String apiDoc = MessageFormat.format(API_TEMPLATE,new Object[]{path,reqMethod,reqStr.toString(),resqStr.toString()});
+                String apiDoc = MessageFormat.format(API_TEMPLATE,new Object[]{apiDesc,path,reqMethod,reqStr.toString(),resqStr.toString()});
 
                 writeFile(API_PATH, methodType.path.replace("/",".") + ".txt",apiDoc);
             }
@@ -311,14 +315,9 @@ public class ApiGenerateUtil {
     }
 
     private static void writeFile(String path,String fileName,String content){
-        File file = new File(path);
-        if(file.exists()){
-            file.delete();
-        }
-        file.mkdir();
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(new FileOutputStream(file.getAbsolutePath() + File.separatorChar + fileName));
+            pw = new PrintWriter(new FileOutputStream(API_PATH + File.separatorChar + fileName));
             pw.print(content);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -331,6 +330,23 @@ public class ApiGenerateUtil {
                 }
             }
         }
+    }
+
+    private static void deleteFile(File file){
+        if(file == null){
+            return;
+        }
+        if(file.isFile()){
+            file.delete();
+            return;
+        }
+        for(File tFile:file.listFiles()){
+            if(tFile.isDirectory()){
+                deleteFile(tFile);
+            }
+            tFile.delete();
+        }
+        file.delete();
     }
 
     private static void generateParamStr(StringBuilder strBul,List<ParamType> paramTypeList,String splitChar){
