@@ -13,6 +13,8 @@ webbench -c 并发数 -t 并发时间 网址
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
 find -name .svn |xargs rm -rf  移除满足条件的所有文件：
 
+grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   提取键值对格式文件指定值
+
 /******************************git***************************************/
 git tag
 git push --tag
