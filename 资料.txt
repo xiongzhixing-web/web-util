@@ -65,6 +65,23 @@ SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   ²é¿´±
 /**************************************************************************************/
 
   Pattern p = Pattern.compile("\\s*//[^/]+$");
+  
+  
+/***************************************mongodb*******************************************/
+monggoShell»¹Ò»¸öjavascriptÒıÇæ
+show dbs   Õ¹Ê¾Êı¾İ¿â
+user db;   Ê¹ÓÃÊı¾İ¿â
+show collections;    ²é¿´±í
+db.[documentName].insert({name:"xzx"}) ²åÈëµ¥¸ö
+db.[documentName].drop()    //Çå³ı±í
+db.[documentName].remove({})  //Ìõ¼şÉ¾³ı 
+
+insert ²åÈëÏàÍ¬id»á±¨´í£¬saveÏàÍ¬idÊÇ¸üĞÂ£¬²»Í¬ÊÇ²åÈë
+
+
+
+  
+
 
 
 
