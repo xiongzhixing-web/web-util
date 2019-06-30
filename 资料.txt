@@ -12,7 +12,9 @@ rcho >> klllf.log   日志重定向
 webbench -c 并发数 -t 并发时间 网址
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
 find . -type f -name "*.swp" -delete  移除满足条件的所有文件：
+find . -type f -mtime +10 -name "*.txt" -exec cp {} OLD \;
 
+find -name '*.sh' | xargs grep 'sh' --color  将上一个命令得到的文件路径作为下一个文本搜索条件
 grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   提取键值对格式文件指定值
 
  script -t 2> timing.log -a output.session  录制命令  exit退出
