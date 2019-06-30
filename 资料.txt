@@ -11,10 +11,12 @@ netstat -an | grep 8788   查看端口占用
 rcho >> klllf.log   日志重定向
 webbench -c 并发数 -t 并发时间 网址
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
-find -name .svn |xargs rm -rf  移除满足条件的所有文件：
+find . -type f -name "*.swp" -delete  移除满足条件的所有文件：
 
 grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   提取键值对格式文件指定值
 
+ script -t 2> timing.log -a output.session  录制命令  exit退出
+ scriptreplay timing.log output.session   播放命令
 /******************************git***************************************/
 git tag
 git push --tag
