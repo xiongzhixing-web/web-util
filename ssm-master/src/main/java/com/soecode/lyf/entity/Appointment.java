@@ -1,20 +1,23 @@
 package com.soecode.lyf.entity;
 
+import com.soecode.lyf.annotation.DocAnnotation;
+
 import java.util.Date;
 
 /**
  * 预约图书实体
  */
 public class Appointment {
-
+	@DocAnnotation(comment="书的id")
 	private long bookId;// 图书ID
-
+	@DocAnnotation(comment="学号")
 	private long studentId;// 学号
-
+	@DocAnnotation(comment="预约时间")
 	private Date appointTime;// 预约时间
-
-	// 多对一的复合属性
-	private Book book;// 图书实体
+/*	@DocAnnotation(comment="图书实体")
+	private Book book;// 图书实体*/
+	@DocAnnotation(comment="学生")
+	private People people;// 图书实体
 
 	public Appointment() {
 	}
@@ -29,7 +32,7 @@ public class Appointment {
 		this.bookId = bookId;
 		this.studentId = studentId;
 		this.appointTime = appointTime;
-		this.book = book;
+		//this.book = book;
 	}
 
 	public long getBookId() {
@@ -56,13 +59,13 @@ public class Appointment {
 		this.appointTime = appointTime;
 	}
 
-	public Book getBook() {
+	/*public Book getBook() {
 		return book;
 	}
 
 	public void setBook(Book book) {
 		this.book = book;
-	}
+	}*/
 
 	@Override
 	public String toString() {

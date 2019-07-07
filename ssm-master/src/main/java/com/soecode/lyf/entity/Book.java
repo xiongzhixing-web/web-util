@@ -1,15 +1,23 @@
 package com.soecode.lyf.entity;
 
+import com.soecode.lyf.annotation.DocAnnotation;
+
+import java.util.List;
+
 /**
  * 图书实体
  */
 public class Book {
-
+	@DocAnnotation(comment="书的id")
 	private long bookId;// 图书ID
-
+	@DocAnnotation(comment="书名")
 	private String name;// 图书名称
-
+	@DocAnnotation(comment = "书的数量")
 	private int number;// 馆藏数量
+	@DocAnnotation(comment = "借书的人")
+	private People people;
+	@DocAnnotation(comment = "预约列表")
+	private List<Appointment> appointmentList;
 
 	public Book() {
 	}
@@ -42,6 +50,22 @@ public class Book {
 
 	public void setNumber(int number) {
 		this.number = number;
+	}
+
+	public People getPeople() {
+		return people;
+	}
+
+	public void setPeople(People people) {
+		this.people = people;
+	}
+
+	public List<Appointment> getAppointmentList() {
+		return appointmentList;
+	}
+
+	public void setAppointmentList(List<Appointment> appointmentList) {
+		this.appointmentList = appointmentList;
 	}
 
 	@Override

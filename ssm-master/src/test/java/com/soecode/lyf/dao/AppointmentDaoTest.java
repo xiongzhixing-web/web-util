@@ -25,7 +25,7 @@ public class AppointmentDaoTest extends BaseTest {
 		long studentId = 12345678910L;
 		Appointment appointment = appointmentDao.queryByKeyWithBook(bookId, studentId);
 		System.out.println(appointment);
-		System.out.println(appointment.getBook());
+		//System.out.println(appointment.getBook());
 	}
 
 }

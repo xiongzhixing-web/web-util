@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classs>
+    <class path="com.soecode.lyf.testclassloader.ClassForName1" >
+    </class>
+    <class path="com.soecode.lyf.testclassloader.ClassForName2" >
+    </class>
+</classs>
