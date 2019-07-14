@@ -19,6 +19,11 @@ grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   
 
  script -t 2> timing.log -a output.session  录制命令  exit退出
  scriptreplay timing.log output.session   播放命令
+ 
+ curl http//www.baidu.com   查询接口是否通
+ 
+ curl -s http://www.jxufe.cn/ | egrep -o "<img[^>]*src=\"[^>]+\"[^>]*>" | sed "s/<img[^>]*src=\"\([^ ]\+\)\"[^>]*>$/\1/g" | sort | uniq | xargs -n1 -I {} curl -s -O http://www.jxufe.cn/{}   爬取指定网站页面图片
+ 
 /******************************git***************************************/
 git tag
 git push --tag
@@ -29,6 +34,7 @@ git push origin my-test  //将my-test分支推送到远程
 git branch --set-upstream-to=origin/my-test //将本地分支my-test关联到远程分支my-test上   
 git branch -a //查看远程分支 
 git merge test；  合并分支
+git reset --hard  本地回退
 /******************************git***************************************/
 
 

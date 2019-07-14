@@ -8,13 +8,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestSynchronized {
     public static void main(String[] args) {
-        ExecutorService executor = Executors.newFixedThreadPool(10);
+        /*ExecutorService executor = Executors.newFixedThreadPool(10);
 
         for(int i= 0;i < 10;i++){
             executor.execute(new People());
         }
 
-        executor.shutdown();
+        executor.shutdown();*/
+
+
     }
     static class People implements Runnable{
         private static volatile Map<String,String> data;

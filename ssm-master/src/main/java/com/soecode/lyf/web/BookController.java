@@ -43,7 +43,7 @@ public class BookController extends BaseController{
 	public Result<List<Book>> list(@RequestBody @Validated BookVo book,BindingResult result) {
 		Result<List<Book>> res = new Result<>();
 		if(result.hasErrors()){
-			res.setErrMessage(result.getAllErrors().parallelStream().map(error -> error.getDefaultMessage()).collect(Collectors.toList()).toString());
+			res.setErrMessage(result.getAllErrors().stream().filter(error -> error != null).map(error -> error.getDefaultMessage()).collect(Collectors.toList()).toString());
 			return res;
 		}
 		List<Book> list = bookService.getList();
