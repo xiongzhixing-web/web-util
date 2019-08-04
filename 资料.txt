@@ -36,6 +36,10 @@ git branch -a //查看远程分支
 git merge test；  合并分支
 git reset --hard versionId 本地回退
 git push -f  将本地回退强制推到远程
+
+git update-index --assume-unchanged FILE 在FILE处输入要忽略的文件。
+如果要还原的话，使用命令：
+git update-index --no-assume-unchanged FILE
 /******************************git***************************************/
 
 
