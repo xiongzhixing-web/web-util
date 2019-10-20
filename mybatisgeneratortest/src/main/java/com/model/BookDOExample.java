@@ -3,14 +3,14 @@ package com.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookExample {
+public class BookDOExample {
     protected String orderByClause;
 
     protected boolean distinct;
 
     protected List<Criteria> oredCriteria;
 
-    public BookExample() {
+    public BookDOExample() {
         oredCriteria = new ArrayList<Criteria>();
     }
 
@@ -114,52 +114,52 @@ public class BookExample {
             return (Criteria) this;
         }
 
-        public Criteria andBookIdEqualTo(Long value) {
+        public Criteria andBookIdEqualTo(Integer value) {
             addCriterion("book_id =", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdNotEqualTo(Long value) {
+        public Criteria andBookIdNotEqualTo(Integer value) {
             addCriterion("book_id <>", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdGreaterThan(Long value) {
+        public Criteria andBookIdGreaterThan(Integer value) {
             addCriterion("book_id >", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdGreaterThanOrEqualTo(Long value) {
+        public Criteria andBookIdGreaterThanOrEqualTo(Integer value) {
             addCriterion("book_id >=", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdLessThan(Long value) {
+        public Criteria andBookIdLessThan(Integer value) {
             addCriterion("book_id <", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdLessThanOrEqualTo(Long value) {
+        public Criteria andBookIdLessThanOrEqualTo(Integer value) {
             addCriterion("book_id <=", value, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdIn(List<Long> values) {
+        public Criteria andBookIdIn(List<Integer> values) {
             addCriterion("book_id in", values, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdNotIn(List<Long> values) {
+        public Criteria andBookIdNotIn(List<Integer> values) {
             addCriterion("book_id not in", values, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdBetween(Long value1, Long value2) {
+        public Criteria andBookIdBetween(Integer value1, Integer value2) {
             addCriterion("book_id between", value1, value2, "bookId");
             return (Criteria) this;
         }
 
-        public Criteria andBookIdNotBetween(Long value1, Long value2) {
+        public Criteria andBookIdNotBetween(Integer value1, Integer value2) {
             addCriterion("book_id not between", value1, value2, "bookId");
             return (Criteria) this;
         }

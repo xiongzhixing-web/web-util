@@ -1,17 +1,17 @@
 package com.model;
 
-public class Book {
-    private Long bookId;
+public class BookDO {
+    private Integer bookId;
 
     private String name;
 
     private Integer number;
 
-    public Long getBookId() {
+    public Integer getBookId() {
         return bookId;
     }
 
-    public void setBookId(Long bookId) {
+    public void setBookId(Integer bookId) {
         this.bookId = bookId;
     }
 

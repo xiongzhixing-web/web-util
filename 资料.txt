@@ -24,6 +24,8 @@ grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   
  
  curl -s http://www.jxufe.cn/ | egrep -o "<img[^>]*src=\"[^>]+\"[^>]*>" | sed "s/<img[^>]*src=\"\([^ ]\+\)\"[^>]*>$/\1/g" | sort | uniq | xargs -n1 -I {} curl -s -O http://www.jxufe.cn/{}   爬取指定网站页面图片
  
+ curl -H "Content-Type:application/json" -X POST -d 'json data' UR
+ 
 /******************************git***************************************/
 git tag
 git push --tag
@@ -40,6 +42,8 @@ git push -f  将本地回退强制推到远程
 git update-index --assume-unchanged FILE 在FILE处输入要忽略的文件。
 如果要还原的话，使用命令：
 git update-index --no-assume-unchanged FILE
+
+git config --global credential.helper store   只需首次输入密码，后面不需要输入
 /******************************git***************************************/
 
 
