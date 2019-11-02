@@ -13,7 +13,7 @@ webbench -c 并发数 -t 并发时间 网址
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
 find . -type f -name "*.swp" -delete  移除满足条件的所有文件：
 find . -type f -mtime +10 -name "*.txt" -exec cp {} OLD \;
-
+du -sh *  查看当前文件夹下所有文件大小
 find -name '*.sh' | xargs grep 'sh' --color  将上一个命令得到的文件路径作为下一个文本搜索条件
 grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   提取键值对格式文件指定值
 
