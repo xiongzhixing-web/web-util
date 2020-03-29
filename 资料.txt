@@ -26,6 +26,9 @@ grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   
  
  curl -H "Content-Type:application/json" -X POST -d 'json data' UR
  
+ linux有设置对外端口访问范围，导致redis的telnet不通的问题。显示范围内的端口号都只能本地访问，6379自然也就不能被访问到了：
+ 使用：iptables -F，将这些规则都清楚掉，再次使用 iptables -L -n
+ 
 /******************************git***************************************/
 git tag
 git push --tag
