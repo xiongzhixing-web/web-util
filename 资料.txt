@@ -26,7 +26,7 @@ grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   
  curl -H "Content-Type:application/json" -X POST -d 'json data' UR
  
  linux有设置对外端口访问范围，导致redis的telnet不通的问题。显示范围内的端口号都只能本地访问，6379自然也就不能被访问到了：
- 使用：iptables -F，将这些规则都清楚掉，再次使用 iptables -L -n
+ 使用：iptables-F，将这些规则都清楚掉，再次使用 iptables -L -n
  
  sed -i 's/foo/bar/g' myfile   修改文件内容 -i表示替换
  
@@ -40,9 +40,10 @@ swapon /home/swap
 vim /etc/fstab
 添加以下语句。
 /home/swap swap swap defaults 0 0
-————————————————
-版权声明：本文为CSDN博主「杯底囚人」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/beidiqiuren/java/article/details/52931399
+
+统计文本单词出现数量：
+awk '{for(i=1;i<=NF;i++){asso_array[$i]++}}; END {for(w in asso_array){print w,asso_array[w]}}' ./word.txt | awk '{print $2 $1}' | sort -nr
+cat ./word.txt | xargs -n1 | sort | uniq -c | sort -rn | awk '{print $2,$1}'
 /******************************git***************************************/
 git tag
 git push --tag
