@@ -118,3 +118,6 @@ db.[documentName].drop()    //清除表
 db.[documentName].remove({})  //条件删除 
 
 insert 插入相同id会报错，save相同id是更新，不同是插入
+
+
+https://www.bilibili.com/video/BV12i4y1g7dB?p=5
