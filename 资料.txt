@@ -1,47 +1,47 @@
 /************************linux***********************************/
-ps aux | grep tomcat ²é¿´½ø³Ì
-sudo kill -9 24289 É±ËÀ½ø³Ì
+ps aux | grep tomcat æŸ¥çœ‹è¿›ç¨‹
+sudo kill -9 24289 æ€æ­»è¿›ç¨‹
 grep -C 5 'NullPointerException' ./catalina.out 
-sed -n '266299,266399p' ./catalina.out    ÕâÑùÄã¾Í¿ÉÒÔÖ»²é¿´ÎÄ¼şµÄµÚ5ĞĞµ½µÚ10ĞĞ
-grep -n 'NullPointerException' ./catalina.out   ÏÔÊ¾ĞĞºÅÒÔ¼°ËùÔÚĞĞ
-grep apple fruitlist.txt | grep -v pineapple   ÅÅ³ı
-grep -nlr  'name'  . ÒâË¼ÊÇÔÚµ±Ç°Ä¿Â¼µİ¹éËÑË÷¡°name¡±£¬²¢ÔÚ½á¹ûÀïÏÔÊ¾ĞĞºÅ¡£
-netstat -an | grep 8788   ²é¿´¶Ë¿ÚÕ¼ÓÃ
-rcho >> klllf.log   ÈÕÖ¾ÖØ¶¨Ïò
-webbench -c ²¢·¢Êı -t ²¢·¢Ê±¼ä ÍøÖ·
+sed -n '266299,266399p' ./catalina.out    è¿™æ ·ä½ å°±å¯ä»¥åªæŸ¥çœ‹æ–‡ä»¶çš„ç¬¬5è¡Œåˆ°ç¬¬10è¡Œ
+grep -n 'NullPointerException' ./catalina.out   æ˜¾ç¤ºè¡Œå·ä»¥åŠæ‰€åœ¨è¡Œ
+grep apple fruitlist.txt | grep -v pineapple   æ’é™¤
+grep -nlr  'name'  . æ„æ€æ˜¯åœ¨å½“å‰ç›®å½•é€’å½’æœç´¢â€œnameâ€ï¼Œå¹¶åœ¨ç»“æœé‡Œæ˜¾ç¤ºè¡Œå·ã€‚
+netstat -an | grep 8788   æŸ¥çœ‹ç«¯å£å ç”¨
+rcho >> klllf.log   æ—¥å¿—é‡å®šå‘
+webbench -c å¹¶å‘æ•° -t å¹¶å‘æ—¶é—´ ç½‘å€
 webbench -c 300 -t 10 http://wx.itzls.com/index.php/home/Redis1/order
-find . -type f -name "*.swp" -delete  ÒÆ³ıÂú×ãÌõ¼şµÄËùÓĞÎÄ¼ş£º
+find . -type f -name "*.swp" -delete  ç§»é™¤æ»¡è¶³æ¡ä»¶çš„æ‰€æœ‰æ–‡ä»¶ï¼š
 find . -type f -mtime +10 -name "*.txt" -exec cp {} OLD \;
-du -sh *  ²é¿´µ±Ç°ÎÄ¼ş¼ĞÏÂËùÓĞÎÄ¼ş´óĞ¡
-find -name '*.sh' | xargs grep 'sh' --color  ½«ÉÏÒ»¸öÃüÁîµÃµ½µÄÎÄ¼şÂ·¾¶×÷ÎªÏÂÒ»¸öÎÄ±¾ËÑË÷Ìõ¼ş
-grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   ÌáÈ¡¼üÖµ¶Ô¸ñÊ½ÎÄ¼şÖ¸¶¨Öµ
+du -sh *  æŸ¥çœ‹å½“å‰æ–‡ä»¶å¤¹ä¸‹æ‰€æœ‰æ–‡ä»¶å¤§å°
+find -name '*.sh' | xargs grep 'sh' --color  å°†ä¸Šä¸€ä¸ªå‘½ä»¤å¾—åˆ°çš„æ–‡ä»¶è·¯å¾„ä½œä¸ºä¸‹ä¸€ä¸ªæ–‡æœ¬æœç´¢æ¡ä»¶
+grep 'dubbo.consumer.cluster' ./dubbo.properties | sed '2,$d' | cut -d'=' -f2   æå–é”®å€¼å¯¹æ ¼å¼æ–‡ä»¶æŒ‡å®šå€¼
 
- script -t 2> timing.log -a output.session  Â¼ÖÆÃüÁî  exitÍË³ö
- scriptreplay timing.log output.session   ²¥·ÅÃüÁî
+ script -t 2> timing.log -a output.session  å½•åˆ¶å‘½ä»¤  exité€€å‡º
+ scriptreplay timing.log output.session   æ’­æ”¾å‘½ä»¤
  
- curl http//www.baidu.com   ²éÑ¯½Ó¿ÚÊÇ·ñÍ¨
+ curl http//www.baidu.com   æŸ¥è¯¢æ¥å£æ˜¯å¦é€š
  
- curl -s http://www.jxufe.cn/ | egrep -o "<img[^>]*src=\"[^>]+\"[^>]*>" | sed "s/<img[^>]*src=\"\([^ ]\+\)\"[^>]*>$/\1/g" | sort | uniq | xargs -n1 -I {} curl -s -O http://www.jxufe.cn/{}   ÅÀÈ¡Ö¸¶¨ÍøÕ¾Ò³ÃæÍ¼Æ¬
+ curl -s http://www.jxufe.cn/ | egrep -o "<img[^>]*src=\"[^>]+\"[^>]*>" | sed "s/<img[^>]*src=\"\([^ ]\+\)\"[^>]*>$/\1/g" | sort | uniq | xargs -n1 -I {} curl -s -O http://www.jxufe.cn/{}   çˆ¬å–æŒ‡å®šç½‘ç«™é¡µé¢å›¾ç‰‡
  
  curl -H "Content-Type:application/json" -X POST -d 'json data' UR
  
- linuxÓĞÉèÖÃ¶ÔÍâ¶Ë¿Ú·ÃÎÊ·¶Î§£¬µ¼ÖÂredisµÄtelnet²»Í¨µÄÎÊÌâ¡£ÏÔÊ¾·¶Î§ÄÚµÄ¶Ë¿ÚºÅ¶¼Ö»ÄÜ±¾µØ·ÃÎÊ£¬6379×ÔÈ»Ò²¾Í²»ÄÜ±»·ÃÎÊµ½ÁË£º
- Ê¹ÓÃ£ºiptables-F£¬½«ÕâĞ©¹æÔò¶¼Çå³şµô£¬ÔÙ´ÎÊ¹ÓÃ iptables -L -n
+ linuxæœ‰è®¾ç½®å¯¹å¤–ç«¯å£è®¿é—®èŒƒå›´ï¼Œå¯¼è‡´redisçš„telnetä¸é€šçš„é—®é¢˜ã€‚æ˜¾ç¤ºèŒƒå›´å†…çš„ç«¯å£å·éƒ½åªèƒ½æœ¬åœ°è®¿é—®ï¼Œ6379è‡ªç„¶ä¹Ÿå°±ä¸èƒ½è¢«è®¿é—®åˆ°äº†ï¼š
+ ä½¿ç”¨ï¼šiptables-Fï¼Œå°†è¿™äº›è§„åˆ™éƒ½æ¸…æ¥šæ‰ï¼Œå†æ¬¡ä½¿ç”¨ iptables -L -n
  
- sed -i 's/foo/bar/g' myfile   ĞŞ¸ÄÎÄ¼şÄÚÈİ -i±íÊ¾Ìæ»»
+ sed -i 's/foo/bar/g' myfile   ä¿®æ”¹æ–‡ä»¶å†…å®¹ -iè¡¨ç¤ºæ›¿æ¢
  
- 1) ´´½¨swap£¬ÉèÖÃÎª8G
+ 1) åˆ›å»ºswapï¼Œè®¾ç½®ä¸º8G
 dd if=/dev/zero of=/home/swap bs=1024 count=8192000
-2) ÉèÖÃ½»»»ÎÄ¼ş
+2) è®¾ç½®äº¤æ¢æ–‡ä»¶
 mkswap /home/swap
-3) Á¢¼´ÆôÓÃ½»»»·ÖÇøÎÄ¼ş
+3) ç«‹å³å¯ç”¨äº¤æ¢åˆ†åŒºæ–‡ä»¶
 swapon /home/swap
-4) ±à¼­/etc/fstabÎÄ¼ş£¬ÓÀ¾ÃÈ·¶¨½»»»·ÖÇø
+4) ç¼–è¾‘/etc/fstabæ–‡ä»¶ï¼Œæ°¸ä¹…ç¡®å®šäº¤æ¢åˆ†åŒº
 vim /etc/fstab
-Ìí¼ÓÒÔÏÂÓï¾ä¡£
+æ·»åŠ ä»¥ä¸‹è¯­å¥ã€‚
 /home/swap swap swap defaults 0 0
 
-Í³¼ÆÎÄ±¾µ¥´Ê³öÏÖÊıÁ¿£º
+ç»Ÿè®¡æ–‡æœ¬å•è¯å‡ºç°æ•°é‡ï¼š
 awk '{for(i=1;i<=NF;i++){asso_array[$i]++}}; END {for(w in asso_array){print w,asso_array[w]}}' ./word.txt | awk '{print $2 $1}' | sort -nr
 cat ./word.txt | xargs -n1 | sort | uniq -c | sort -rn | awk '{print $2,$1}'
 /******************************git***************************************/
@@ -49,23 +49,23 @@ git tag
 git push --tag
 $ git tag -d ola_v1.0_b14
 $ git push origin --delete tag ola_v1.0_b14
-git checkout -b my-test  //ÔÚµ±Ç°·ÖÖ§ÏÂ´´½¨my-testµÄ±¾µØ·ÖÖ§·ÖÖ§
-git push origin my-test  //½«my-test·ÖÖ§ÍÆËÍµ½Ô¶³Ì
-git branch --set-upstream-to=origin/my-test //½«±¾µØ·ÖÖ§my-test¹ØÁªµ½Ô¶³Ì·ÖÖ§my-testÉÏ   
-git branch -a //²é¿´Ô¶³Ì·ÖÖ§ 
-git merge test£»  ºÏ²¢·ÖÖ§
-git reset --hard versionId ±¾µØ»ØÍË
-git push -f  ½«±¾µØ»ØÍËÇ¿ÖÆÍÆµ½Ô¶³Ì
-git branch -m old new   ±¾µØ·ÖÖ§ÖØÃüÃû
+git checkout -b my-test  //åœ¨å½“å‰åˆ†æ”¯ä¸‹åˆ›å»ºmy-testçš„æœ¬åœ°åˆ†æ”¯åˆ†æ”¯
+git push origin my-test  //å°†my-teståˆ†æ”¯æ¨é€åˆ°è¿œç¨‹
+git branch --set-upstream-to=origin/my-test //å°†æœ¬åœ°åˆ†æ”¯my-testå…³è”åˆ°è¿œç¨‹åˆ†æ”¯my-testä¸Š   
+git branch -a //æŸ¥çœ‹è¿œç¨‹åˆ†æ”¯ 
+git merge testï¼›  åˆå¹¶åˆ†æ”¯
+git reset --hard versionId æœ¬åœ°å›é€€
+git push -f  å°†æœ¬åœ°å›é€€å¼ºåˆ¶æ¨åˆ°è¿œç¨‹
+git branch -m old new   æœ¬åœ°åˆ†æ”¯é‡å‘½å
 git branch -d <BranchName>
-git push origin --delete Chapater6  É¾³ıÔ¶³Ì·ÖÖ§
+git push origin --delete Chapater6  åˆ é™¤è¿œç¨‹åˆ†æ”¯
 
 
-git update-index --assume-unchanged FILE ÔÚFILE´¦ÊäÈëÒªºöÂÔµÄÎÄ¼ş¡£
-Èç¹ûÒª»¹Ô­µÄ»°£¬Ê¹ÓÃÃüÁî£º
+git update-index --assume-unchanged FILE åœ¨FILEå¤„è¾“å…¥è¦å¿½ç•¥çš„æ–‡ä»¶ã€‚
+å¦‚æœè¦è¿˜åŸçš„è¯ï¼Œä½¿ç”¨å‘½ä»¤ï¼š
 git update-index --no-assume-unchanged FILE
 
-git config --global credential.helper store   Ö»ĞèÊ×´ÎÊäÈëÃÜÂë£¬ºóÃæ²»ĞèÒªÊäÈë
+git config --global credential.helper store   åªéœ€é¦–æ¬¡è¾“å…¥å¯†ç ï¼Œåé¢ä¸éœ€è¦è¾“å…¥
 /******************************git***************************************/
 
 
@@ -85,7 +85,7 @@ begin
   set sIndex = 1;
 	set eIndex = LOCATE(',',new.str_ids,sIndex);
 
-/*Ñ­»·¿ªÊ¼*/
+/*å¾ªç¯å¼€å§‹*/
 flag_while:while eIndex != 0  do
    set strId = SUBSTRING(strIds,sIndex,eIndex - sIndex);
 	 set selCount = (select count(*) from str s where s.code_unit_id=new.code_unit_id and s.str_id=strId);
@@ -96,28 +96,40 @@ flag_while:while eIndex != 0  do
    set sIndex = eIndex + 1;
 	 set eIndex = LOCATE(',',NEW.str_ids,sIndex);
 
-   /*ÉùÃ÷½áÊøµÄÊ±ºò*/
+   /*å£°æ˜ç»“æŸçš„æ—¶å€™*/
    if eIndex=0 then leave flag_while ; end if ;
- end while flag_while;  /*Ñ­»·½áÊø*/
+ end while flag_while;  /*å¾ªç¯ç»“æŸ*/
 end|
 DELIMITER ;
 
-SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   ²é¿´±»Ëø¼ÇÂ¼
+SELECT * FROM information_schema.INNODB_TRX where trx_state <> 'RUNNING'   æŸ¥çœ‹è¢«é”è®°å½•
 /**************************************************************************************/
 
   Pattern p = Pattern.compile("\\s*//[^/]+$");
   
   
 /***************************************mongodb*******************************************/
-monggoShell»¹Ò»¸öjavascriptÒıÇæ
-show dbs   Õ¹Ê¾Êı¾İ¿â
-user db;   Ê¹ÓÃÊı¾İ¿â
-show collections;    ²é¿´±í
-db.[documentName].insert({name:"xzx"}) ²åÈëµ¥¸ö
-db.[documentName].drop()    //Çå³ı±í
-db.[documentName].remove({})  //Ìõ¼şÉ¾³ı 
+monggoShellè¿˜ä¸€ä¸ªjavascriptå¼•æ“
+show dbs   å±•ç¤ºæ•°æ®åº“
+user db;   ä½¿ç”¨æ•°æ®åº“
+show collections;    æŸ¥çœ‹è¡¨
+db.[documentName].insert({name:"xzx"}) æ’å…¥å•ä¸ª
+db.[documentName].drop()    //æ¸…é™¤è¡¨
+db.[documentName].remove({})  //æ¡ä»¶åˆ é™¤ 
 
-insert ²åÈëÏàÍ¬id»á±¨´í£¬saveÏàÍ¬idÊÇ¸üĞÂ£¬²»Í¬ÊÇ²åÈë
+insert æ’å…¥ç›¸åŒidä¼šæŠ¥é”™ï¼Œsaveç›¸åŒidæ˜¯æ›´æ–°ï¼Œä¸åŒæ˜¯æ’å…¥
 
 
 https://www.bilibili.com/video/BV12i4y1g7dB?p=5
+
+
+nohup java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999  -jar /home/zg-stm-pms/jar/zg-stm-pms-management.jar  jarå¯åŠ¨è®¾ç½®debugç«¯å£
+
+
+
+/******************************************java**********************************************/
+#è¿œç¨‹è°ƒè¯•åŠ è¿œç¨‹çƒ­éƒ¨ç½²
+java -agentpath:/usr/local/jrebel/lib/libjrebel64.so -Drebel.remoting_plugin=true -Drebel.remoting_port=9999 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5898 -Xdebug -jar ./demo-0.0.1-SNAPSHOT.jar
+
+
+java -agentpath:/usr/local/jrebel/lib/libjrebel64.so -Drebel.remoting_plugin=true -Drebel.remoting_port=9999 com.example.demo.DemoApplication
