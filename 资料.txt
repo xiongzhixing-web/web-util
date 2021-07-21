@@ -133,3 +133,8 @@ java -agentpath:/usr/local/jrebel/lib/libjrebel64.so -Drebel.remoting_plugin=tru
 
 
 java -agentpath:/usr/local/jrebel/lib/libjrebel64.so -Drebel.remoting_plugin=true -Drebel.remoting_port=9999 com.example.demo.DemoApplication
+
+
+https://stackoverflow.com/questions/24505993/the-resource-is-not-on-the-build-path-of-a-javascript-project
+
+https://www.programmersought.com/article/34724136893/
